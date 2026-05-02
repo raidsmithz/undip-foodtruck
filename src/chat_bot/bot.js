@@ -152,10 +152,9 @@ var listenerInitialized = false;
           // '--no-zygote'
         ]
     },
-    webVersionCache: {
-      type: "remote",
-      remotePath: `https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/${wwebVersion}.html`,
-    },
+    // Let whatsapp-web.js use its bundled webVersion/webVersionCache.
+    // The library is tested against a specific protocol version; overriding
+    // breaks the handshake and produces "Try Again" on scan.
   });
 
   client.on("loading_screen", (percent, message) => {
