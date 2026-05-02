@@ -5,7 +5,16 @@ const {
   MessageTypes,
   MessageMedia,
 } = require("whatsapp-web.js");
-const puppeteer = require('puppeteer');
+// Wrap puppeteer with the stealth plugin so WhatsApp Web's anti-bot detection
+// can't pick up the obvious automation tells (navigator.webdriver, missing
+// chrome.runtime, plugin-list mismatch, canvas fingerprint anomalies, etc.).
+// We push the wrapped instance into Node's module cache under "puppeteer" so
+// that whatsapp-web.js's internal require("puppeteer") resolves to it.
+const puppeteerExtra = require("puppeteer-extra");
+const StealthPlugin = require("puppeteer-extra-plugin-stealth");
+puppeteerExtra.use(StealthPlugin());
+require.cache[require.resolve("puppeteer")] = { exports: puppeteerExtra };
+const puppeteer = puppeteerExtra;
 const qrcode_terminal = require("qrcode-terminal");
 const QRCode = require("qrcode");
 const { format } = require("date-fns");
@@ -114,7 +123,6 @@ if (!ADMIN_WHATSAPP || !ADMIN_WHATSAPP_SELF) {
 // const chatId = "1296772370";
 
 const systemVersion = "v2.24.1127";
-const wwebVersion = "2.3000.1038673194-alpha";
 const maxEntriesPerLocation = 30;
 const maxAccountRegistration = 3;
 
@@ -148,10 +156,12 @@ var listenerInitialized = false;
           '--no-sandbox',
           '--disable-setuid-sandbox',
           '--disable-dev-shm-usage',
-          // '--single-process',
-          // '--no-zygote'
+          '--disable-blink-features=AutomationControlled',
+          '--lang=id-ID,id',
         ]
     },
+    userAgent:
+      "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
     // Let whatsapp-web.js use its bundled webVersion/webVersionCache.
     // The library is tested against a specific protocol version; overriding
     // breaks the handshake and produces "Try Again" on scan.
