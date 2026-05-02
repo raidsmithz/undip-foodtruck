@@ -150,11 +150,10 @@ async function registeredCountSSOIDS(wa_number) {
         return sso_ids.length;
       }
     }
-    console.log(`Account ${wa_number} not found.`);
-    return [];
+    return 0;
   } catch (error) {
     console.error(error);
-    return false;
+    return 0;
   }
 }
 

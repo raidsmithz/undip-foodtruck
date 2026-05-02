@@ -285,7 +285,7 @@ async function main() {
   await check("image upload without prior beli is refused (#7)", async () => {
     const { msg, sent } = await send("", { type: MessageTypes.IMAGE });
     const r = msg.captured.replies[0] || "";
-    if (!r.includes("Pilih akun pembelian dulu") && !r.includes("Belum punya akun"))
+    if (!r.includes("Belum memilih akun pembelian") && !r.includes("Belum punya akun"))
       return `got: ${summarize(r)}`;
     // ensure NOT forwarded to admin
     const forwarded = sent.find((s) => s.to === ADMIN_WHATSAPP);
