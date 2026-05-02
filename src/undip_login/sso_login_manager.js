@@ -5,6 +5,12 @@ dotenv.config();
 const PROXY_URL = process.env.PROXY_URL || "";
 const PROXY_USERNAME = process.env.PROXY_USERNAME || "";
 const PROXY_PASSWORD = process.env.PROXY_PASSWORD || "";
+// Same chrome the WhatsApp client uses (snap chromium on aarch64; bundled
+// puppeteer chrome is x86-64 only and won't run on ARM hosts).
+const CHROME_EXECUTABLE_PATH =
+  process.env.CHROMIUM_EXECUTABLE_PATH ||
+  process.env.CHROME_EXECUTABLE_PATH ||
+  undefined; // fall through to puppeteer's bundled chrome on x86 hosts
 
 async function waitForMultipleSelectors(page, selectors) {
   const selectorPromises = selectors.map((selector, index) =>
@@ -46,6 +52,7 @@ class LoginManager {
 
     const browser = await puppeteer.launch({
       headless: true,
+      executablePath: CHROME_EXECUTABLE_PATH,
       userDataDir:
         "./src/undip_login/chrome_session/login_session_" + this.chromeIndex,
       args: launchArgs,
