@@ -117,12 +117,62 @@ WAMessages.init(
       allowNull: false,
       defaultValue: 0,
     },
+    subscribed: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true,
+    },
+    pending_action: {
+      type: DataTypes.STRING(64),
+      allowNull: true,
+    },
+    pending_action_at: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    blocked_at: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
   },
   {
     sequelize,
     modelName: "wa_messages",
     createdAt: "created_at",
     updatedAt: "updated_at",
+  }
+);
+
+class ErrorLogs extends Model {}
+ErrorLogs.init(
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      autoIncrement: true,
+      primaryKey: true,
+    },
+    wa_number: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    command: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+    },
+    error_message: {
+      type: DataTypes.TEXT,
+      allowNull: false,
+    },
+    stack: {
+      type: DataTypes.TEXT("long"),
+      allowNull: true,
+    },
+  },
+  {
+    sequelize,
+    modelName: "error_logs",
+    createdAt: "created_at",
+    updatedAt: false,
   }
 );
 
@@ -185,4 +235,5 @@ module.exports = {
   SSOAccounts,
   WAMessages,
   TakenCoupons,
+  ErrorLogs,
 };
