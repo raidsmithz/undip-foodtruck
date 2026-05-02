@@ -7,7 +7,11 @@ const {
   SSOAccounts,
   WAMessages,
   TakenCoupons,
+  ErrorLogs,
 } = require("./tables");
+
+const PENDING_ACTION_TTL_MS = 5 * 60 * 1000; // 5 min — abandons stale ya/batal
+const BLOCKED_TTL_MS = 3 * 60 * 60 * 1000; // 3h — ping auto-expire
 
 async function registeredNewAddAccount(wa_number, arr_sso_ids) {
   try {
@@ -873,6 +877,162 @@ async function getCountSubmission(submit, location) {
   }
 }
 
+// ───────────────────────────────────────────────────────────────────────────
+// Refactor additions: subscribed flag, pending_action FSM, blocked auto-expire,
+// error log, balanced-location picker, atomic register-with-trial.
+// ───────────────────────────────────────────────────────────────────────────
+
+async function waMsgSetSubscribed(wa_number, value) {
+  await WAMessages.update({ subscribed: value }, { where: { wa_number } });
+}
+
+async function waMsgGetSubscribedNumbers() {
+  const rows = await WAMessages.findAll({
+    where: { subscribed: true, blocked: 0 },
+    attributes: ["wa_number"],
+  });
+  return rows.map((r) => r.wa_number);
+}
+
+async function waMsgSetPendingAction(wa_number, action) {
+  await WAMessages.update(
+    { pending_action: action, pending_action_at: new Date() },
+    { where: { wa_number } }
+  );
+}
+
+async function waMsgGetPendingAction(wa_number) {
+  const row = await WAMessages.findOne({ where: { wa_number } });
+  if (!row || !row.pending_action) return null;
+  if (row.pending_action_at) {
+    const age = Date.now() - new Date(row.pending_action_at).getTime();
+    if (age > PENDING_ACTION_TTL_MS) {
+      await waMsgClearPendingAction(wa_number);
+      return null;
+    }
+  }
+  return row.pending_action;
+}
+
+async function waMsgClearPendingAction(wa_number) {
+  await WAMessages.update(
+    { pending_action: null, pending_action_at: null },
+    { where: { wa_number } }
+  );
+}
+
+async function waMsgSetBlocked(wa_number, blocked, blocked_at = null) {
+  await WAMessages.update(
+    {
+      blocked: blocked ? 1 : 0,
+      blocked_at: blocked ? blocked_at || new Date() : null,
+    },
+    { where: { wa_number } }
+  );
+}
+
+async function waMsgIsBlocked(wa_number) {
+  const row = await WAMessages.findOne({ where: { wa_number } });
+  if (!row) return -1;
+  if (!row.blocked) return false;
+  if (row.blocked_at) {
+    const age = Date.now() - new Date(row.blocked_at).getTime();
+    if (age > BLOCKED_TTL_MS) {
+      await waMsgSetBlocked(wa_number, false);
+      return "expired";
+    }
+  }
+  return true;
+}
+
+async function waMsgExpireStaleBlocks() {
+  const cutoff = new Date(Date.now() - BLOCKED_TTL_MS);
+  const [count] = await WAMessages.update(
+    { blocked: 0, blocked_at: null },
+    { where: { blocked: 1, blocked_at: { [Op.lt]: cutoff } } }
+  );
+  return count;
+}
+
+async function errorLogAdd(wa_number, command, err) {
+  try {
+    await ErrorLogs.create({
+      wa_number: wa_number || null,
+      command: command ? command.slice(0, 255) : null,
+      error_message: (err && err.message) || String(err),
+      stack: (err && err.stack) || null,
+    });
+  } catch (logErr) {
+    console.error("[errorLogAdd] failed to write log:", logErr.message);
+  }
+}
+
+async function ssoPickBalancedLocation(maxPerLocation = 30) {
+  const counts = [1, 2, 3, 4].map((loc) =>
+    getCountSubmission(true, loc).then((n) => ({ loc, n }))
+  );
+  const resolved = await Promise.all(counts);
+  const available = resolved.filter((r) => r.n < maxPerLocation);
+  if (available.length === 0) {
+    // every location full — pick at random anyway, submit will stay disabled
+    return Math.floor(Math.random() * 4) + 1;
+  }
+  const minLoad = Math.min(...available.map((r) => r.n));
+  const leastLoaded = available.filter((r) => r.n === minLoad);
+  return leastLoaded[Math.floor(Math.random() * leastLoaded.length)].loc;
+}
+
+async function daftarFirstAccountWithTrial(wa_number, email, password, opts = {}) {
+  const { trialQuota = 2, maxPerLocation = 30 } = opts;
+  const existing = await registeredCountSSOIDS(wa_number);
+  const isFirstAccount = existing === 0;
+
+  let appliedTrial = false;
+  if (isFirstAccount) {
+    const waRow = await WAMessages.findOne({ where: { wa_number } });
+    if (waRow && waRow.free_trial === 0) appliedTrial = true;
+  }
+
+  const location = await ssoPickBalancedLocation(maxPerLocation);
+  const quota = appliedTrial ? trialQuota : 0;
+
+  const sso_id = await ssoAddAccount(
+    email,
+    password,
+    "",
+    location,
+    quota,
+    0,
+    0,
+    0
+  );
+  if (!sso_id) return { ok: false, reason: "sso_add_failed" };
+
+  const linkResult = await registeredAddAccountID(wa_number, sso_id);
+  if (!linkResult) return { ok: false, reason: "link_failed" };
+
+  let submitEnabled = false;
+  if (appliedTrial) {
+    const locCount = await getCountSubmission(true, location);
+    if (locCount < maxPerLocation) {
+      await ssoEditAccountEnableSubmit(sso_id, 1);
+      submitEnabled = true;
+    }
+    await WAMessages.update({ free_trial: 1 }, { where: { wa_number } });
+  }
+
+  return {
+    ok: true,
+    sso_id,
+    location,
+    quota,
+    submit_enabled: submitEnabled,
+    applied_trial: appliedTrial,
+    is_first_account: isFirstAccount,
+    account_index: existing + 1,
+  };
+}
+
 async function reverseEncryption() {
   try {
     const all_accounts = await SSOAccounts.findAll();
@@ -942,4 +1102,15 @@ module.exports = {
   getCombinedSSOAccounts,
   getFalseSubmissionAccountsToday,
   getCountSubmission,
+  waMsgSetSubscribed,
+  waMsgGetSubscribedNumbers,
+  waMsgSetPendingAction,
+  waMsgGetPendingAction,
+  waMsgClearPendingAction,
+  waMsgSetBlocked,
+  waMsgIsBlocked,
+  waMsgExpireStaleBlocks,
+  errorLogAdd,
+  ssoPickBalancedLocation,
+  daftarFirstAccountWithTrial,
 };
