@@ -94,6 +94,8 @@ const token = process.env.TELEGRAM_TOKEN || "";
 const CHROME_EXECUTABLE_PATH =
   process.env.CHROME_EXECUTABLE_PATH ||
   "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
+const CHROME_HEADLESS =
+  (process.env.CHROME_HEADLESS || "false").toLowerCase() === "true";
 
 if (!ADMIN_WHATSAPP || !ADMIN_WHATSAPP_SELF) {
   console.warn(
@@ -141,7 +143,7 @@ var listenerInitialized = false;
     // }),
     puppeteer: {
         executablePath: CHROME_EXECUTABLE_PATH,
-        headless: false,
+        headless: CHROME_HEADLESS,
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
