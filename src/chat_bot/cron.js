@@ -1,0 +1,147 @@
+const schedule = require("node-schedule");
+const { MessageMedia } = require("whatsapp-web.js");
+const views = require("./views");
+const loginAccounts = require("../undip_login/login_accounts");
+const {
+  ssoGetAccount,
+  registeredGetWANumberBySSOID,
+  couponsGetAllEntriesToday,
+  couponsUpdateWASent,
+  getCombinedSSOAccounts,
+  getFalseSubmissionAccountsToday,
+  ssoEditAccountReminded,
+  waMsgGetFreeTrialStatus,
+  waMsgExpireStaleBlocks,
+} = require("../models/functions");
+
+const COUPON_BATCH_LIMIT = 16;
+
+// Cron schedule: every minute from 10:05 to 11:05 weekdays
+const COUPON_TIMES = [
+  "5 10 * * 1-5", "6 10 * * 1-5", "7 10 * * 1-5", "8 10 * * 1-5",
+  "9 10 * * 1-5", "10 10 * * 1-5", "15 10 * * 1-5", "20 10 * * 1-5",
+  "25 10 * * 1-5", "30 10 * * 1-5", "35 10 * * 1-5", "40 10 * * 1-5",
+  "45 10 * * 1-5", "50 10 * * 1-5", "55 10 * * 1-5", "0 11 * * 1-5",
+  "5 11 * * 1-5",
+];
+
+const RELOGIN_SCHEDULE = "15,45 * * * *";
+const REMINDER_SCHEDULE = "0 7 * * 1-4";
+const BLOCKED_SWEEP_SCHEDULE = "*/30 * * * *";
+
+async function sendCoupons(client) {
+  console.log("TASK: Sending taken coupons...");
+  const taken = await couponsGetAllEntriesToday();
+  if (!taken.length) return;
+  let sent = 0;
+  for (const coupon of taken) {
+    if (sent >= COUPON_BATCH_LIMIT) break;
+    if (coupon.wa_sent_at) continue;
+    const account = await ssoGetAccount(coupon.sso_id);
+    const wa = await registeredGetWANumberBySSOID(coupon.sso_id);
+    if (!account || !wa) continue;
+    if (coupon.taken_success) {
+      try {
+        const isTrial = (await waMsgGetFreeTrialStatus(wa)) === 1;
+        const media = MessageMedia.fromFilePath(`./python/${coupon.coupon_file}`);
+        await client.sendMessage(wa, media, {
+          caption: views.couponReceived({
+            email: account.email,
+            quota: account.available_quota,
+            isTrial,
+            trialRemaining: isTrial ? account.available_quota : 0,
+          }),
+        });
+      } catch (e) {
+        console.error("[sendCoupons] media send failed", e.message);
+      }
+    } else {
+      await client.sendMessage(wa, views.couponMissed(account.email));
+    }
+    await couponsUpdateWASent(coupon.sso_id);
+    sent += 1;
+  }
+}
+
+async function doLoginAccounts(client) {
+  const before = await getCombinedSSOAccounts();
+  const beforeMap = {};
+  for (const acc of before) beforeMap[acc.dataValues.id] = acc.dataValues.status_login;
+  const updatedIds = await loginAccounts();
+  for (const id of updatedIds) {
+    const account = await ssoGetAccount(id);
+    if (!account) continue;
+    const wa = await registeredGetWANumberBySSOID(id);
+    if (!wa) continue;
+    switch (account.status_login) {
+      case 1: {
+        const previous = beforeMap[id];
+        if (previous === 0) {
+          try {
+            await client.sendMessage(wa, views.reLoginSuccess(account.email));
+          } catch (_) {}
+        }
+        break;
+      }
+      case 4:
+        try {
+          await client.sendMessage(wa, views.reLoginPasswordWrong(account.email));
+        } catch (_) {}
+        break;
+      case 5:
+        try {
+          await client.sendMessage(wa, views.reLoginEmailWrong(account.email));
+        } catch (_) {}
+        break;
+    }
+  }
+}
+
+async function reminderActivationSubmission(client) {
+  console.log("TASK: Reminding to activate submission and buy quota...");
+  const accounts = await getFalseSubmissionAccountsToday();
+  for (const acc of accounts) {
+    const account = await ssoGetAccount(acc.id);
+    if (!account) continue;
+    const wa = await registeredGetWANumberBySSOID(acc.id);
+    if (!wa) continue;
+    if (acc.available_quota > 0) {
+      try {
+        await client.sendMessage(
+          wa,
+          views.reminderUnsubmitted(account.email, account.available_quota)
+        );
+      } catch (_) {}
+    } else if (acc.reminded === 0) {
+      try {
+        await client.sendMessage(wa, views.reminderQuotaEmpty(account.email));
+        await ssoEditAccountReminded(acc.id, true);
+      } catch (_) {}
+    }
+  }
+}
+
+async function sweepStaleBlocks() {
+  try {
+    const n = await waMsgExpireStaleBlocks();
+    if (n > 0) console.log(`[cron] auto-expired ${n} stale ping blocks`);
+  } catch (e) {
+    console.error("[cron] sweepStaleBlocks failed", e.message);
+  }
+}
+
+function start(client) {
+  for (const t of COUPON_TIMES)
+    schedule.scheduleJob(t, () => sendCoupons(client));
+  schedule.scheduleJob(RELOGIN_SCHEDULE, () => doLoginAccounts(client));
+  schedule.scheduleJob(REMINDER_SCHEDULE, () => reminderActivationSubmission(client));
+  schedule.scheduleJob(BLOCKED_SWEEP_SCHEDULE, sweepStaleBlocks);
+}
+
+module.exports = {
+  start,
+  sendCoupons,
+  doLoginAccounts,
+  reminderActivationSubmission,
+  sweepStaleBlocks,
+};
