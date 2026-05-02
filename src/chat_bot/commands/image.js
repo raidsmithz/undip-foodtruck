@@ -9,16 +9,12 @@ module.exports = {
   name: "image",
   async handle({ msg, client, deps }) {
     const sso_ids = await registeredGetSSOIDS(msg.from);
-    if (!sso_ids || sso_ids.length === 0) {
-      await msg.react("❌");
-      return { reply: views.imageNoAccounts() };
-    }
+    if (!sso_ids || sso_ids.length === 0)
+      return { reply: views.imageNoAccounts(), react: "❌" };
 
     const pay_sso_id = await registeredGetPaySSOID(msg.from);
-    if (!pay_sso_id || pay_sso_id <= 0) {
-      await msg.react("❌");
-      return { reply: views.imageNoPaySelection() };
-    }
+    if (!pay_sso_id || pay_sso_id <= 0)
+      return { reply: views.imageNoPaySelection(), react: "❌" };
 
     const attachmentData = await msg.downloadMedia();
     if (deps.ADMIN_WHATSAPP) {
@@ -27,7 +23,6 @@ module.exports = {
       });
     }
     await registeredEditPaySSOID(msg.from, 0);
-    await msg.react("⏳");
-    return { reply: views.paymentReceived() };
+    return { reply: views.paymentReceived(), react: "⏳" };
   },
 };

@@ -214,35 +214,33 @@ async function registeredTotalAccounts() {
 }
 
 async function waMsgAddAccount(wa_number, last_messages) {
+  // findOrCreate is atomic against the unique(wa_number) index — concurrent
+  // first-contact messages from the same user can't produce duplicates.
   try {
-    const new_account = await WAMessages.create({
-      wa_number,
-      last_messages,
+    const [row] = await WAMessages.findOrCreate({
+      where: { wa_number },
+      defaults: { last_messages },
     });
-    console.log(`Added account ${new_account.wa_number}`);
-    return new_account.wa_number;
+    return row.wa_number;
   } catch (error) {
-    console.error(error);
+    console.error("[waMsgAddAccount]", error.message);
+    return null;
   }
 }
 
 async function waMsgEditMessages(wa_number, last_messages) {
   try {
-    const account = await WAMessages.findOne({ where: { wa_number } });
-    if (account) {
-      account.last_messages = last_messages;
-      await account.save();
-      console.log(
-        `Last messages on account ${account.wa_number}: ${account.last_messages}`
-      );
-      return true;
-    } else {
-      await waMsgAddAccount(wa_number, last_messages);
-      console.log(`New account ${wa_number} added`);
-      return false;
+    const [row, created] = await WAMessages.findOrCreate({
+      where: { wa_number },
+      defaults: { last_messages },
+    });
+    if (!created) {
+      row.last_messages = last_messages;
+      await row.save();
     }
+    return true;
   } catch (error) {
-    console.error(error);
+    console.error("[waMsgEditMessages]", error.message);
     return false;
   }
 }
@@ -1008,7 +1006,13 @@ async function daftarFirstAccountWithTrial(wa_number, email, password, opts = {}
   if (!sso_id) return { ok: false, reason: "sso_add_failed" };
 
   const linkResult = await registeredAddAccountID(wa_number, sso_id);
-  if (!linkResult) return { ok: false, reason: "link_failed" };
+  if (!linkResult) {
+    // Linking failed — clean up the orphan SSO account so we don't leak rows.
+    try {
+      await ssoDeleteAccount(sso_id);
+    } catch (_) {}
+    return { ok: false, reason: "link_failed" };
+  }
 
   let submitEnabled = false;
   if (appliedTrial) {

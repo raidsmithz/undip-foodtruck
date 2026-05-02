@@ -297,6 +297,19 @@ const hapusSuccess = (email, remainingCount) =>
 
 const hapusBatal = () => "Penghapusan akun dibatalkan.";
 
+const pendingHint = (action) => {
+  const label = action && action.startsWith("delete")
+    ? "*penghapusan akun*"
+    : action === "ping"
+    ? "*ping admin*"
+    : "*aksi sebelumnya*";
+  return (
+    `Anda sedang dalam konfirmasi ${label}.\n` +
+    "Ketik *_ya_* untuk lanjut, atau *_batal_* untuk membatalkan. " +
+    "Otomatis dibatalkan setelah 5 menit jika tidak ada respon."
+  );
+};
+
 const pingConfirm = () =>
   "Akan menghubungi admin. Anda akan dinonaktifkan dari bot dan " +
   "chat akan berlanjut langsung dengan admin sampai admin mengembalikan " +
@@ -428,6 +441,7 @@ module.exports = {
   hapusConfirm,
   hapusSuccess,
   hapusBatal,
+  pendingHint,
   pingConfirm,
   pingActive,
   pingBatal,

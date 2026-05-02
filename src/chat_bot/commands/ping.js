@@ -14,9 +14,9 @@ module.exports = {
   async resolveConfirm({ msg, pending, client, deps }) {
     const parts = pendingMatches(pending, "ping");
     if (!parts) return null;
-    await clearPending(msg.from);
 
     if (msg.body === "ya") {
+      await clearPending(msg.from);
       await block(msg.from);
       const adminWa = deps.ADMIN_WHATSAPP;
       const adminSelf = deps.ADMIN_WHATSAPP_SELF;
@@ -31,6 +31,10 @@ module.exports = {
       }
       return { reply: views.pingActive() };
     }
-    return { reply: views.pingBatal() };
+    if (msg.body === "batal" || msg.body === "tidak") {
+      await clearPending(msg.from);
+      return { reply: views.pingBatal() };
+    }
+    return { reply: views.pendingHint(pending) };
   },
 };

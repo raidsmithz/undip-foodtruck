@@ -29,20 +29,22 @@ module.exports = {
     const parts = pendingMatches(pending, "delete");
     if (!parts) return null;
     const sso_id = parseInt(parts[0], 10);
-    await clearPending(msg.from);
 
     if (msg.body === "ya") {
+      await clearPending(msg.from);
       const account = await ssoGetAccount(sso_id);
       const email = account ? account.email : "?";
       const ok = await registeredRemoveAccountID(msg.from, sso_id);
       if (!ok) return { reply: views.commandError() };
       const remaining = await registeredGetSSOIDS(msg.from);
-      return {
-        reply: views.hapusSuccess(email, remaining.length),
-      };
+      return { reply: views.hapusSuccess(email, remaining.length) };
     }
-    if (msg.body === "batal" || msg.body === "tidak")
+    if (msg.body === "batal" || msg.body === "tidak") {
+      await clearPending(msg.from);
       return { reply: views.hapusBatal() };
-    return { reply: views.hapusBatal() };
+    }
+    // Anything else: keep pending, show hint. The 5-min auto-expire will
+    // eventually clear it if the user truly walks away.
+    return { reply: views.pendingHint(pending) };
   },
 };

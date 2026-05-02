@@ -92,6 +92,7 @@ WAMessages.init(
     wa_number: {
       type: DataTypes.STRING,
       allowNull: false,
+      unique: true,
     },
     last_messages: {
       type: DataTypes.TEXT("long"),

@@ -236,7 +236,14 @@ async function main() {
     if (!r.includes("batal")) return "missing batal keyword";
   });
 
-  await check("hapus + batal cancels", async () => {
+  await check("non-confirmation during pending shows hint, KEEPS pending", async () => {
+    const { msg } = await send("halo, lagi apa kak?");
+    const r = msg.captured.replies[0] || "";
+    if (!r.includes("konfirmasi")) return `expected hint, got: ${summarize(r)}`;
+    if (!r.includes("ya") || !r.includes("batal")) return "hint missing keywords";
+  });
+
+  await check("hapus + batal cancels (pending preserved from previous test)", async () => {
     const { msg } = await send("batal");
     const r = msg.captured.replies[0] || "";
     if (!r.includes("dibatalkan")) return `got: ${summarize(r)}`;
