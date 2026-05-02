@@ -1,0 +1,66 @@
+# ───── Secrets & credentials ─────
+.env
+.env.*
+!.env.example
+python/saved_accounts.json
+
+# ───── Node ─────
+node_modules/
+client/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ───── Python ─────
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.venv/
+venv/
+env/
+
+# ───── WhatsApp / Puppeteer sessions ─────
+.wwebjs_cache/
+.wwebjs_auth/
+src/chat_bot/wa_session/
+src/undip_login/chrome_session/
+src/undip_login/2captcha-solver/
+
+# ───── Runtime output ─────
+python/logs/
+python/kupon/
+python/test.txt
+python/test.py
+python/test_solver.py
+
+# ───── Next.js ─────
+client/.next/
+client/out/
+client/build/
+client/next-env.d.ts
+client/.vercel/
+
+# ───── Large binaries / dumps not meant for git ─────
+libAppGuard.so
+dump.txt
+*.so
+*.dll
+*.exe
+
+# ───── IDE / editor ─────
+.vscode/
+.idea/
+.claude/
+*.swp
+*.swo
+*~
+
+# ───── OS ─────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ───── Misc ─────
+*.log
+.cache/

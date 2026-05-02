@@ -1,0 +1,945 @@
+// functions.js
+const { Op } = require("sequelize");
+const { encrypt, decrypt } = require("../utils/encryption");
+
+const {
+  RegisteredWhatsapp,
+  SSOAccounts,
+  WAMessages,
+  TakenCoupons,
+} = require("./tables");
+
+async function registeredNewAddAccount(wa_number, arr_sso_ids) {
+  try {
+    const account = await RegisteredWhatsapp.findOne({ where: { wa_number } });
+    if (account) {
+      console.log(`Account ${wa_number} already existed.`);
+      return false;
+    } else {
+      const str_sso_ids = arr_sso_ids.join(", ");
+      const new_account = await RegisteredWhatsapp.create({
+        wa_number,
+        sso_ids: str_sso_ids,
+      });
+      console.log(`Added account ${new_account.id}: ${new_account.sso_ids}`);
+      return new_account.id;
+    }
+  } catch (error) {
+    console.error(error);
+    return false;
+  }
+}
+
+async function registeredAddAccountID(wa_number, sso_id) {
+  try {
+    const account = await registeredGetAccount(wa_number);
+    if (account) {
+      if (account.sso_ids === "") {
+        account.sso_ids = sso_id;
+        await account.save();
+        console.log(`Update added account on ${wa_number}: ${sso_id}`);
+        return sso_id;
+      } else {
+        const arr_sso_ids = account.sso_ids
+          .split(",")
+          .map((id) => parseInt(id.trim()));
+        arr_sso_ids.push(sso_id);
+        const str_sso_ids = arr_sso_ids.join(", ");
+        account.sso_ids = str_sso_ids;
+        await account.save();
+        console.log(`Update added account on ${wa_number}: ${str_sso_ids}`);
+        return str_sso_ids;
+      }
+    } else {
+      console.log("New Account");
+      return await registeredNewAddAccount(wa_number, [sso_id]);
+    }
+  } catch (error) {
+    console.error(error);
+    return false;
+  }
+}
+
+async function registeredRemoveAccountID(wa_number, sso_idToRemove) {
+  try {
+    const account = await registeredGetAccount(wa_number);
+    if (!account) {
+      console.log(`Account ${wa_number} not found.`);
+      return false;
+    }
+    const arr_sso_ids = account.sso_ids
+      .split(",")
+      .map((id) => parseInt(id.trim()));
+    const indexToRemove = arr_sso_ids.indexOf(sso_idToRemove);
+    if (indexToRemove === -1) {
+      console.log(
+        `SSO ID ${sso_idToRemove} not found in ${wa_number}'s account.`
+      );
+      return false;
+    }
+    arr_sso_ids.splice(indexToRemove, 1);
+    const str_sso_ids = arr_sso_ids.join(", ");
+    account.sso_ids = str_sso_ids;
+    await account.save();
+
+    console.log(
+      `Removed SSO ID ${sso_idToRemove} from account ${wa_number}: ${str_sso_ids}`
+    );
+    return true;
+  } catch (error) {
+    console.error(error);
+    return false;
+  }
+}
+
+async function registeredGetWANumberBySSOID(sso_id) {
+  try {
+    // Find the first entry that matches the sso_id
+    const registered = await RegisteredWhatsapp.findOne({
+      where: { sso_ids: { [Op.like]: `%${sso_id}%` } }, // Assuming sso_ids is a comma-separated list
+      attributes: ["wa_number"],
+    });
+
+    if (registered) {
+      return registered.wa_number;
+    } else {
+      console.log(`No wa_number found for sso_id: ${sso_id}`);
+      return null;
+    }
+  } catch (error) {
+    console.error(`Error fetching wa_number for sso_id ${sso_id}:`, error);
+    throw error;
+  }
+}
+
+async function registeredGetSSOIDS(wa_number) {
+  try {
+    const account = await RegisteredWhatsapp.findOne({ where: { wa_number } });
+    if (account) {
+      if (account.sso_ids === "") {
+        return [];
+      } else {
+        const sso_ids = account.sso_ids
+          .split(",")
+          .map((id) => parseInt(id.trim()));
+        return sso_ids;
+      }
+    }
+    console.log(`Account ${wa_number} not found.`);
+    return [];
+  } catch (error) {
+    console.error(error);
+    return false;
+  }
+}
+
+async function registeredCountSSOIDS(wa_number) {
+  try {
+    const account = await RegisteredWhatsapp.findOne({ where: { wa_number } });
+    if (account) {
+      if (account.sso_ids === "") {
+        return 0;
+      } else {
+        const sso_ids = account.sso_ids
+          .split(",")
+          .map((id) => parseInt(id.trim()));
+        return sso_ids.length;
+      }
+    }
+    console.log(`Account ${wa_number} not found.`);
+    return [];
+  } catch (error) {
+    console.error(error);
+    return false;
+  }
+}
+
+async function registeredGetAccount(wa_number) {
+  try {
+    const account = await RegisteredWhatsapp.findOne({ where: { wa_number } });
+    if (account) {
+      return account;
+    }
+    console.log(`Account ${wa_number} not found.`);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+async function registeredGetPaySSOID(wa_number) {
+  try {
+    const account = await RegisteredWhatsapp.findOne({ where: { wa_number } });
+    if (account) {
+      return account.pay_sso_id;
+    } else {
+      console.log(`No account ${wa_number}`);
+      return false;
+    }
+  } catch (error) {
+    console.error(error);
+    return false;
+  }
+}
+
+async function registeredEditPaySSOID(wa_number, pay_sso_id) {
+  try {
+    const account = await RegisteredWhatsapp.findOne({ where: { wa_number } });
+    if (account) {
+      account.pay_sso_id = pay_sso_id;
+      await account.save();
+      console.log(
+        `Pay id on account ${account.wa_number}: ${account.pay_sso_id}`
+      );
+      return true;
+    } else {
+      console.log(`No account ${wa_number}`);
+      return false;
+    }
+  } catch (error) {
+    console.error(error);
+    return false;
+  }
+}
+
+async function registeredTotalAccounts() {
+  try {
+    const count = await RegisteredWhatsapp.count();
+    return count;
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+async function waMsgAddAccount(wa_number, last_messages) {
+  try {
+    const new_account = await WAMessages.create({
+      wa_number,
+      last_messages,
+    });
+    console.log(`Added account ${new_account.wa_number}`);
+    return new_account.wa_number;
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+async function waMsgEditMessages(wa_number, last_messages) {
+  try {
+    const account = await WAMessages.findOne({ where: { wa_number } });
+    if (account) {
+      account.last_messages = last_messages;
+      await account.save();
+      console.log(
+        `Last messages on account ${account.wa_number}: ${account.last_messages}`
+      );
+      return true;
+    } else {
+      await waMsgAddAccount(wa_number, last_messages);
+      console.log(`New account ${wa_number} added`);
+      return false;
+    }
+  } catch (error) {
+    console.error(error);
+    return false;
+  }
+}
+
+async function waMsgEditConfirmation(wa_number, confirmation) {
+  try {
+    const account = await WAMessages.findOne({ where: { wa_number } });
+    if (account) {
+      account.confirmation = confirmation;
+      await account.save();
+      console.log(
+        `Confirmation on account ${account.wa_number}: ${account.confirmation}`
+      );
+      return true;
+    } else {
+      console.log(`No account ${wa_number}`);
+      return false;
+    }
+  } catch (error) {
+    console.error(error);
+    return false;
+  }
+}
+
+async function waMsgGetConfirmation(wa_number) {
+  try {
+    const account = await WAMessages.findOne({ where: { wa_number } });
+    if (account) {
+      return account.confirmation;
+    } else {
+      console.log(`No account ${wa_number}`);
+      return false;
+    }
+  } catch (error) {
+    console.error(error);
+    return false;
+  }
+}
+
+async function waMsgEditBlocked(wa_number, blocked) {
+  try {
+    const account = await WAMessages.findOne({ where: { wa_number } });
+    if (account) {
+      account.blocked = blocked;
+      await account.save();
+      console.log(
+        `Blocked on account ${account.wa_number}: ${account.blocked}`
+      );
+      return true;
+    } else {
+      console.log(`No account ${wa_number}`);
+      return false;
+    }
+  } catch (error) {
+    console.error(error);
+    return false;
+  }
+}
+
+async function waMsgGetBlocked(wa_number) {
+  try {
+    const account = await WAMessages.findOne({ where: { wa_number } });
+    if (account) {
+      return account.blocked;
+    } else {
+      console.log(`No account ${wa_number}`);
+      return -1;
+    }
+  } catch (error) {
+    console.error(error);
+    return false;
+  }
+}
+
+async function waMsgEditRulesAccepted(wa_number, rules_accepted) {
+  try {
+    const account = await WAMessages.findOne({ where: { wa_number } });
+    if (account) {
+      account.rules_accepted = rules_accepted;
+      await account.save();
+      console.log(
+        `RulesAccepted on account ${account.wa_number}: ${account.rules_accepted}`
+      );
+      return true;
+    } else {
+      console.log(`No account ${wa_number}`);
+      return false;
+    }
+  } catch (error) {
+    console.error(error);
+    return false;
+  }
+}
+
+async function waMsgGetRulesAccepted(wa_number) {
+  try {
+    const account = await WAMessages.findOne({ where: { wa_number } });
+    if (account) {
+      return account.rules_accepted;
+    } else {
+      console.log(`No account ${wa_number}`);
+      return false;
+    }
+  } catch (error) {
+    console.error(error);
+    return false;
+  }
+}
+
+async function waMsgGetFreeTrialStatus(wa_number) {
+  try {
+    const account = await WAMessages.findOne({ where: { wa_number } });
+    if (account) {
+      return account.free_trial;
+    } else {
+      console.log(`No account ${wa_number}`);
+      return false;
+    }
+  } catch (error) {
+    console.error(error);
+    return false;
+  }
+}
+
+async function waMsgEditFreeTrialStatus(wa_number, free_trial) {
+  try {
+    const account = await WAMessages.findOne({ where: { wa_number } });
+    if (account) {
+      account.free_trial = free_trial;
+      await account.save();
+      console.log(
+        `Pay id on account ${account.wa_number}: ${account.free_trial}`
+      );
+      return true;
+    } else {
+      console.log(`No account ${wa_number}`);
+      return false;
+    }
+  } catch (error) {
+    console.error(error);
+    return false;
+  }
+}
+
+async function waMsgGetAllWANumber() {
+  try {
+    const messages = await WAMessages.findAll({
+      attributes: ["wa_number"],
+    });
+
+    // Extract wa_number from the result
+    const waNumbers = messages.map((msg) => msg.wa_number);
+
+    return waNumbers;
+  } catch (error) {
+    console.error("Error fetching WA numbers:", error);
+    throw error;
+  }
+}
+
+async function waMsgGetLastMessages(wa_number) {
+  try {
+    const account = await WAMessages.findOne({ where: { wa_number } });
+    if (account) {
+      return account.last_messages;
+    } else {
+      console.log(`No account ${wa_number}`);
+    }
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+async function ssoAddAccount(
+  email,
+  password,
+  cookie,
+  pick,
+  quota,
+  enable,
+  status,
+  reminded
+) {
+  try {
+    const new_account = await SSOAccounts.create({
+      email: encrypt(email),
+      password: encrypt(password),
+      login_cookie: cookie,
+      pick_location: pick,
+      available_quota: quota,
+      enable_submit: enable,
+      status_login: status,
+      reminded: reminded,
+    });
+    console.log(
+      `Added account ${new_account.id}: ${decrypt(new_account.email)}`
+    );
+    return new_account.id;
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+async function ssoCountTotalAccounts() {
+  try {
+    const count = await SSOAccounts.count();
+    return count;
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+async function ssoGetAccount(account_id) {
+  try {
+    const account = await SSOAccounts.findByPk(account_id);
+    if (account) {
+      console.log(`Account ${account_id}: ${account}`);
+      account.email = decrypt(account.email);
+      account.password = decrypt(account.password);
+      return account;
+    }
+    console.log(`Account ${account_id} not found.`);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+async function ssoDeleteAccount(account_id) {
+  try {
+    const account = await SSOAccounts.findByPk(account_id);
+    if (account) {
+      await account.destroy();
+      console.log(`Account ${account_id} has been deleted.`);
+      return true;
+    }
+    console.log(`Account ${account_id} not found.`);
+    return false;
+  } catch (error) {
+    console.error(error);
+    return false;
+  }
+}
+
+async function ssoEditAccountEmailPassword(account_id, email, password) {
+  try {
+    const account = await SSOAccounts.findByPk(account_id);
+    if (account) {
+      account.email = encrypt(email);
+      account.password = encrypt(password);
+      await account.save();
+      console.log(
+        `Updated account ${account.id}: ${decrypt(account.email)} ${decrypt(
+          account.password
+        )}`
+      );
+      return true;
+    } else {
+      console.log(`Account ${account_id} not found.`);
+      return false;
+    }
+  } catch (error) {
+    console.error(error);
+    return false;
+  }
+}
+
+async function ssoEditAccountQuota(account_id, quota) {
+  try {
+    const account = await SSOAccounts.findByPk(account_id);
+    if (account) {
+      account.available_quota = quota;
+      await account.save();
+      console.log(`Account ${account.id} quota: ${account.available_quota}`);
+      return true;
+    } else {
+      console.log(`Account ${account_id} not found.`);
+      return false;
+    }
+  } catch (error) {
+    console.error(error);
+    return false;
+  }
+}
+
+async function ssoGetAccountQuota(account_id) {
+  try {
+    const account = await SSOAccounts.findByPk(account_id);
+    if (account) {
+      return account.available_quota;
+    } else {
+      console.log(`No account ${account_id}`);
+      return false;
+    }
+  } catch (error) {
+    console.error(error);
+    return false;
+  }
+}
+
+async function ssoEditAccountLocation(account_id, location) {
+  try {
+    const account = await SSOAccounts.findByPk(account_id);
+    if (account) {
+      account.pick_location = location;
+      await account.save();
+      console.log(`Account ${account.id} location: ${account.pick_location}`);
+      return true;
+    } else {
+      console.log(`Account ${account_id} not found.`);
+      return false;
+    }
+  } catch (error) {
+    console.error(error);
+    return false;
+  }
+}
+
+async function ssoEditAccountEnableSubmit(account_id, enable_submit) {
+  try {
+    const account = await SSOAccounts.findByPk(account_id);
+    if (account) {
+      account.enable_submit = enable_submit;
+      await account.save();
+      console.log(
+        `Account ${account.id} enable_submit: ${account.enable_submit}`
+      );
+      return true;
+    } else {
+      console.log(`Account ${account_id} not found.`);
+      return false;
+    }
+  } catch (error) {
+    console.error(error);
+    return false;
+  }
+}
+
+async function ssoEditAccountByID(acc_id, updateFields) {
+  try {
+    const account = await SSOAccounts.findOne({ where: { id: acc_id } });
+    if (account) {
+      for (const [field, value] of Object.entries(updateFields)) {
+        if (account[field] !== undefined) {
+          if (field === "email" || field === "password") {
+            account[field] = encrypt(value);
+          } else {
+            account[field] = value;
+          }
+        }
+      }
+      await account.save();
+      console.log(`Updated account on ${account.id}`);
+      return true;
+    } else {
+      console.log(`Account with ID ${acc_id} not found.`);
+      return false;
+    }
+  } catch (error) {
+    console.error(`Error updating account: ${error}`);
+    return false;
+  }
+}
+
+async function ssoEditAccountReminded(account_id, reminded) {
+  try {
+    const account = await SSOAccounts.findByPk(account_id);
+    if (account) {
+      account.reminded = reminded;
+      await account.save();
+      console.log(`Account ${account.id} reminded: ${account.reminded}`);
+      return true;
+    } else {
+      console.log(`Account ${account_id} not found.`);
+      return false;
+    }
+  } catch (error) {
+    console.error(error);
+    return false;
+  }
+}
+
+async function couponsCountTakenEntries() {
+  try {
+    const count = await TakenCoupons.count({
+      where: {
+        taken_success: true,
+      },
+    });
+    return count;
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+async function couponsAddEntry(
+  sso_id,
+  kupon_id,
+  tanggal_id,
+  coupon_file,
+  validation_url,
+  found_option_at,
+  send_at,
+  has_sent_at
+) {
+  try {
+    const newEntry = await TakenCoupons.create({
+      sso_id,
+      kupon_id,
+      tanggal_id,
+      coupon_file,
+      validation_url,
+      found_option_at,
+      send_at,
+      has_sent_at,
+    });
+    return newEntry.id;
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+async function couponsGetCouponFile(sso_id) {
+  try {
+    const coupons = await TakenCoupons.findAll({
+      where: { sso_id },
+      attributes: ["coupon_file"],
+    });
+    return coupons.map((coupon) => coupon.coupon_file);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Function to change wa_sent and wa_sent_at where sso_id matches
+async function couponsUpdateWASent(sso_id) {
+  try {
+    const updated = await TakenCoupons.update(
+      { wa_sent_at: new Date() },
+      { where: { sso_id } }
+    );
+    return updated;
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+async function couponsCountLatestEntriesLocation(pick_location, taken_success) {
+  try {
+    const latestEntry = await TakenCoupons.findOne({
+      order: [["created_at", "DESC"]],
+    });
+    if (!latestEntry) {
+      return 0;
+    }
+    const latestDate = latestEntry.created_at;
+    const latestDateOnly = new Date(latestDate.setHours(0, 0, 0, 0)); // Set time to 00:00:00 to compare only the date
+    const count = await TakenCoupons.count({
+      where: {
+        created_at: {
+          [Op.between]: [
+            latestDateOnly,
+            new Date(latestDateOnly.getTime() + 24 * 60 * 60 * 1000),
+          ],
+        },
+        taken_success: {
+          [Op.in]: taken_success,
+        },
+        pick_location: pick_location,
+      },
+    });
+    return count;
+  } catch (error) {
+    console.error(error);
+    return false;
+  }
+}
+
+async function couponsGetAllEntriesToday() {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Set time to 00:00:00
+    const entries = await TakenCoupons.findAll({
+      where: {
+        created_at: {
+          [Op.gte]: today, // Greater than or equal to today's date
+        },
+      },
+    });
+    return entries;
+  } catch (error) {
+    console.error("Error fetching entries created today:", error);
+    throw error;
+  }
+}
+
+async function couponsCheckTakenToday(sso_id) {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Set time to 00:00:00
+    const entries = await TakenCoupons.findAll({
+      where: {
+        sso_id: sso_id,
+        taken_success: true,
+        created_at: {
+          [Op.gte]: today, // Greater than or equal to today's date
+        },
+      },
+    });
+    if (entries.length > 0) return true;
+    else return false;
+  } catch (error) {
+    console.error("Error fetching entries created today:", error);
+    throw error;
+  }
+}
+
+async function getCombinedSSOAccounts() {
+  try {
+    const registereds = await RegisteredWhatsapp.findAll({
+      attributes: ["sso_ids"],
+    });
+    const ssoIdsArray = [];
+    registereds.forEach((registered) => {
+      const ids = registered.sso_ids
+        ? registered.sso_ids.split(",").map((id) => parseInt(id.trim(), 10))
+        : [];
+      ssoIdsArray.push(...ids);
+    });
+
+    const uniqueSSOIds = [...new Set(ssoIdsArray)];
+    const ssoAccounts = await SSOAccounts.findAll({
+      where: {
+        id: {
+          [Op.in]: uniqueSSOIds,
+        },
+        status_login: {
+          [Op.in]: [0, 3, 6, 7, 8],
+        },
+      },
+      attributes: [
+        "id",
+        "email",
+        "password",
+        "login_cookie",
+        "pick_location",
+        "available_quota",
+        "status_login",
+      ],
+    });
+    return ssoAccounts;
+  } catch (error) {
+    console.error("Error fetching SSO accounts:", error);
+    throw error;
+  }
+}
+
+async function getFalseSubmissionAccountsToday() {
+  try {
+    const registereds = await RegisteredWhatsapp.findAll({
+      attributes: ["sso_ids"],
+    });
+    const ssoIdsArray = [];
+    registereds.forEach((registered) => {
+      const ids = registered.sso_ids
+        ? registered.sso_ids.split(",").map((id) => parseInt(id.trim(), 10))
+        : [];
+      ssoIdsArray.push(...ids);
+    });
+
+    const uniqueSSOIds = [...new Set(ssoIdsArray)];
+    const ssoAccounts = await SSOAccounts.findAll({
+      where: {
+        id: {
+          [Op.in]: uniqueSSOIds,
+        },
+        status_login: 1,
+        enable_submit: 0,
+      },
+      attributes: [
+        "id",
+        "email",
+        "password",
+        "login_cookie",
+        "pick_location",
+        "available_quota",
+        "reminded",
+      ],
+    });
+    return ssoAccounts;
+  } catch (error) {
+    console.error("Error fetching SSO accounts:", error);
+    throw error;
+  }
+}
+
+async function getCountSubmission(submit, location) {
+  try {
+    const registereds = await RegisteredWhatsapp.findAll({
+      attributes: ["sso_ids"],
+    });
+    const ssoIdsArray = [];
+    registereds.forEach((registered) => {
+      const ids = registered.sso_ids
+        ? registered.sso_ids.split(",").map((id) => parseInt(id.trim(), 10))
+        : [];
+      ssoIdsArray.push(...ids);
+    });
+
+    const uniqueSSOIds = [...new Set(ssoIdsArray)];
+    const ssoAccounts = await SSOAccounts.findAll({
+      where: {
+        id: {
+          [Op.in]: uniqueSSOIds,
+        },
+        pick_location: location,
+        enable_submit: submit,
+      },
+      attributes: [
+        "id",
+        "email",
+        "password",
+        "login_cookie",
+        "pick_location",
+        "available_quota",
+      ],
+    });
+    return ssoAccounts.length;
+  } catch (error) {
+    console.error("Error fetching SSO accounts:", error);
+    throw error;
+  }
+}
+
+async function reverseEncryption() {
+  try {
+    const all_accounts = await SSOAccounts.findAll();
+    all_accounts.forEach(async (acc) => {
+      const account = await SSOAccounts.findByPk(acc.id);
+      if (account) {
+        account.email = encrypt(account.email);
+        account.password = encrypt(account.password);
+        await account.save();
+        console.log(
+          `Updated account ${account.id}: ${decrypt(account.email)} ${decrypt(
+            account.password
+          )}`
+        );
+        return true;
+      } else {
+        console.log(`Account ${account_id} not found.`);
+        return false;
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    return false;
+  }
+}
+
+module.exports = {
+  registeredNewAddAccount,
+  registeredAddAccountID,
+  registeredRemoveAccountID,
+  registeredGetWANumberBySSOID,
+  registeredGetSSOIDS,
+  registeredCountSSOIDS,
+  registeredGetAccount,
+  registeredGetPaySSOID,
+  registeredEditPaySSOID,
+  registeredTotalAccounts,
+  waMsgAddAccount,
+  waMsgEditMessages,
+  waMsgGetLastMessages,
+  waMsgEditConfirmation,
+  waMsgGetConfirmation,
+  waMsgEditBlocked,
+  waMsgGetBlocked,
+  waMsgEditRulesAccepted,
+  waMsgGetRulesAccepted,
+  waMsgGetFreeTrialStatus,
+  waMsgEditFreeTrialStatus,
+  waMsgGetAllWANumber,
+  ssoCountTotalAccounts,
+  ssoAddAccount,
+  ssoGetAccount,
+  ssoDeleteAccount,
+  ssoEditAccountEmailPassword,
+  ssoEditAccountLocation,
+  ssoEditAccountQuota,
+  ssoGetAccountQuota,
+  ssoEditAccountEnableSubmit,
+  ssoEditAccountByID,
+  ssoEditAccountReminded,
+  couponsAddEntry,
+  couponsCountTakenEntries,
+  couponsCheckTakenToday,
+  couponsUpdateWASent,
+  couponsCountLatestEntriesLocation,
+  couponsGetAllEntriesToday,
+  getCombinedSSOAccounts,
+  getFalseSubmissionAccountsToday,
+  getCountSubmission,
+};

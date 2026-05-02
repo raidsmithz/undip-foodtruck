@@ -1,0 +1,12 @@
+beautifulsoup4
+imgkit
+qrcode
+Requests
+selenium
+twocaptcha
+syncer
+pyppeteer
+sqlalchemy
+mysql-connector-python
+python-dotenv
+cryptography
