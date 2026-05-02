@@ -114,7 +114,7 @@ if (!ADMIN_WHATSAPP || !ADMIN_WHATSAPP_SELF) {
 // const chatId = "1296772370";
 
 const systemVersion = "v2.24.1127";
-const wwebVersion = "2.2407.3"; // 2.2412.54
+const wwebVersion = "2.3000.1038673194-alpha";
 const maxEntriesPerLocation = 30;
 const maxAccountRegistration = 3;
 
@@ -152,10 +152,10 @@ var listenerInitialized = false;
           // '--no-zygote'
         ]
     },
-    // webVersionCache: {
-    //   type: "remote",
-    //   remotePath: `https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/${wwebVersion}.html`,
-    // },
+    webVersionCache: {
+      type: "remote",
+      remotePath: `https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/${wwebVersion}.html`,
+    },
   });
 
   client.on("loading_screen", (percent, message) => {
