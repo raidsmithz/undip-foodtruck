@@ -10,7 +10,6 @@ const {
   getCombinedSSOAccounts,
   getFalseSubmissionAccountsToday,
   ssoEditAccountReminded,
-  waMsgGetFreeTrialStatus,
   waMsgExpireStaleBlocks,
 } = require("../models/functions");
 
@@ -42,14 +41,11 @@ async function sendCoupons(client) {
     if (!account || !wa) continue;
     if (coupon.taken_success) {
       try {
-        const isTrial = (await waMsgGetFreeTrialStatus(wa)) === 1;
         const media = MessageMedia.fromFilePath(`./python/${coupon.coupon_file}`);
         await client.sendMessage(wa, media, {
           caption: views.couponReceived({
             email: account.email,
             quota: account.available_quota,
-            isTrial,
-            trialRemaining: isTrial ? account.available_quota : 0,
           }),
         });
       } catch (e) {

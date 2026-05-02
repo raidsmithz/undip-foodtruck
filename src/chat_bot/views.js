@@ -363,11 +363,8 @@ const validationCapacityFull = () =>
 
 // Cron / system-initiated messages
 
-const couponReceived = ({ email, quota, isTrial, trialRemaining }) =>
-  `*Akun:* ${email}\n*Kuota:* _${quota}x_` +
-  (isTrial && trialRemaining > 0
-    ? `   _(Free Trial — ${trialRemaining} percobaan tersisa)_`
-    : "");
+const couponReceived = ({ email, quota }) =>
+  `*Akun:* ${email}\n*Kuota:* _${quota}x_`;
 
 const couponMissed = (email) =>
   `Akun *_${email}_* tidak mendapatkan kupon hari ini. ` +
