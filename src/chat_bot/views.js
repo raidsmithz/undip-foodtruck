@@ -77,6 +77,7 @@ const daftarMaxAccounts = (max) =>
 const daftarSuccessWithTrial = ({ index, email, location, oldQuota, newQuota, submitEnabled }) =>
   `✅ *Akun ${index} terdaftar + Free Trial aktif!* 🎁\n\n` +
   `*Email:* _${email}_\n` +
+  `*Status:* _Logging In by System_ ⏳\n` +
   `*Lokasi:* _${locationName(location)}_ (otomatis)\n` +
   `*Kuota:* _${oldQuota}x_ → _${newQuota}x_ (Free Trial)\n` +
   `*Submit:* _Disabled_ → _${submitEnabled ? "Enabled" : "Disabled"}_\n\n` +
@@ -88,11 +89,14 @@ const daftarSuccessWithTrial = ({ index, email, location, oldQuota, newQuota, su
     : `Lokasi *${locationName(location)}* sedang penuh — submit otomatis tidak aktif. ` +
       "Pilih lokasi lain via *_ufood akun N lokasi {1-4}_*.\n\n") +
   `Setelah trial habis, beli kuota: *_ufood akun ${index} beli_* (${PRICING})\n` +
-  `Cek akun: *_ufood akun_*  ·  Ubah lokasi: *_ufood akun ${index} lokasi {1-4}_*`;
+  `Cek akun: *_ufood akun_*  ·  Ubah lokasi: *_ufood akun ${index} lokasi {1-4}_*\n\n` +
+  "⏳ *Sistem sedang login ke akun SSO Undip Anda.* " +
+  "Notifikasi hasil login akan dikirim dalam <1 menit.";
 
 const daftarSuccessNoTrial = ({ index, email, location, reason }) =>
   `✅ *Akun ${index} terdaftar*\n\n` +
   `*Email:* _${email}_\n` +
+  `*Status:* _Logging In by System_ ⏳\n` +
   `*Lokasi:* _${locationName(location)}_ (otomatis)\n` +
   `*Kuota:* _0x_   *Submit:* _Disabled_\n\n` +
   (reason === "trial_used"
@@ -101,7 +105,48 @@ const daftarSuccessNoTrial = ({ index, email, location, reason }) =>
     ? "ℹ️ Free trial hanya berlaku untuk akun pertama. Akun ini tidak mendapat trial.\n"
     : "") +
   `\nBeli kuota: *_ufood akun ${index} beli_* (${PRICING})\n` +
-  `Atur lokasi: *_ufood akun ${index} lokasi {1-4}_*`;
+  `Atur lokasi: *_ufood akun ${index} lokasi {1-4}_*\n\n` +
+  "⏳ *Sistem sedang login ke akun SSO Undip Anda.* " +
+  "Notifikasi hasil login akan dikirim dalam <1 menit.";
+
+const loginResult = (idx, email, statusCode) => {
+  switch (statusCode) {
+    case 1:
+      return (
+        `✅ *Akun ${idx} (${email}) berhasil login!*\n` +
+        "Akun siap untuk pengambilan kupon otomatis."
+      );
+    case 4:
+      return (
+        `❌ *Akun ${idx} (${email}) gagal login: password salah.*\n` +
+        `Ganti password dengan: *_ufood akun ${idx} ganti {email} {password_baru}_*`
+      );
+    case 5:
+      return (
+        `❌ *Akun ${idx} (${email}) gagal login: email tidak terdaftar di SSO Undip.*\n` +
+        `Ganti email dengan: *_ufood akun ${idx} ganti {email_baru} {password}_*`
+      );
+    case 2:
+    case 6:
+      return (
+        `❌ *Akun ${idx} (${email}) terdeteksi sudah lulus / bukan mahasiswa aktif Undip.*\n` +
+        "SSO Undip menolak akses untuk akun ini. Sistem layanan ini khusus mahasiswa aktif."
+      );
+    case 7:
+      return (
+        `⚠️ Login *Akun ${idx} (${email})* gagal — server SSO Undip sedang error.\n` +
+        "Sistem akan coba ulang otomatis tiap 15 menit."
+      );
+    case 8:
+    case -1:
+    default:
+      return (
+        `⚠️ Login *Akun ${idx} (${email})* mengalami kendala teknis.\n` +
+        "Sistem akan coba ulang otomatis tiap 15 menit. " +
+        `Cek status terbaru via *_ufood akun_*.`
+      );
+  }
+};
 
 const akunListEmpty = () =>
   "Belum ada akun terdaftar. Mulai dengan:\n" +
@@ -359,6 +404,7 @@ module.exports = {
   daftarMaxAccounts,
   daftarSuccessWithTrial,
   daftarSuccessNoTrial,
+  loginResult,
   akunListEmpty,
   akunCouponLabel,
   akunListItem,

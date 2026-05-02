@@ -101,4 +101,33 @@ async function loginAccounts() {
   return arrayID;
 }
 
+// Logs a single account into Undip SSO immediately. Returns the status code
+// (0..8 from ssoGetStatusCode, -1 on unmapped/system error). Persists the
+// resulting cookie + status_login to the DB before returning.
+async function loginSingleAccount({ sso_id, email, password }) {
+  // Use a high random chromeIndex so we don't fight the cron batch (which
+  // uses indices 1..5) for the same chrome_session/login_session_X dir.
+  const chromeIndex = 1000 + Math.floor(Math.random() * 9000);
+  const manager = new LoginManager(sso_id, email, password, chromeIndex);
+
+  let statusString;
+  try {
+    statusString = await manager.autoLoginGetCookie();
+  } catch (err) {
+    console.error(`[loginSingleAccount] ${email} threw:`, err.message);
+    statusString = "System Error";
+  }
+
+  const status = ssoGetStatusCode(statusString);
+  if (status >= 0 && status <= 6) {
+    await ssoEditAccountByID(sso_id, {
+      login_cookie: manager.formAppSessionValue || "",
+      status_login: status,
+    });
+  }
+  return status;
+}
+
 module.exports = loginAccounts;
+module.exports.loginSingleAccount = loginSingleAccount;
+module.exports.ssoGetStatusCode = ssoGetStatusCode;

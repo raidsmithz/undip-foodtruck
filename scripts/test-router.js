@@ -71,6 +71,7 @@ const deps = {
   ADMIN_WHATSAPP_SELF,
   doLoginAccounts: () => null,
   sendCoupons: () => null,
+  skipAutoLogin: true, // tests don't want the puppeteer login firing
 };
 
 async function send(body, opts = {}) {
@@ -185,6 +186,8 @@ async function main() {
     const r = msg.captured.replies[0] || "";
     if (!r.includes("Free Trial aktif")) return `got: ${summarize(r)}`;
     if (!r.includes("0x_ → _2x")) return "snapshot missing 0→2 quota";
+    if (!r.includes("Logging In by System")) return "missing Logging In status";
+    if (!r.includes("Sistem sedang login")) return "missing follow-up notice";
   });
 
   await check("second daftar from same WA does NOT get trial", async () => {
