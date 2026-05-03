@@ -322,6 +322,48 @@ async function main() {
     await ErrorLogs.destroy({ where: { wa_number: TEST_WA } });
   });
 
+  await check("admin !errors returns recent error log entries", async () => {
+    if (!ADMIN_WHATSAPP) return "ADMIN_WHATSAPP not set in .env";
+    // seed a row so the response is non-empty regardless of prior state
+    await ErrorLogs.create({
+      wa_number: TEST_WA,
+      command: "test-stats-fixture",
+      error_message: "fixture for !errors smoke test",
+      stack: null,
+    });
+    const { msg } = await send("!errors", { from: ADMIN_WHATSAPP });
+    const r = msg.captured.replies[0] || "";
+    if (!r.includes("errors") && !r.includes("error_logs"))
+      return `expected error listing, got: ${summarize(r)}`;
+    if (!r.includes("test-stats-fixture")) return "fixture row missing from output";
+    await ErrorLogs.destroy({ where: { wa_number: TEST_WA } });
+  });
+
+  await check("admin !errors N respects custom limit", async () => {
+    if (!ADMIN_WHATSAPP) return "ADMIN_WHATSAPP not set in .env";
+    const { msg } = await send("!errors 3", { from: ADMIN_WHATSAPP });
+    const r = msg.captured.replies[0] || "";
+    if (r.includes("error") && !r.match(/Last \d+ errors/) && !r.includes("Tidak ada"))
+      return `expected formatted output, got: ${summarize(r)}`;
+  });
+
+  await check("admin !stats returns stats summary", async () => {
+    if (!ADMIN_WHATSAPP) return "ADMIN_WHATSAPP not set in .env";
+    const { msg } = await send("!stats", { from: ADMIN_WHATSAPP });
+    const r = msg.captured.replies[0] || "";
+    if (!r.includes("Sistem Stats")) return `got: ${summarize(r)}`;
+    if (!r.includes("Submit aktif")) return "missing per-location stats";
+    if (!r.includes("Free Trial")) return "missing free trial counter";
+  });
+
+  await check("non-admin cannot run !errors", async () => {
+    const { msg } = await send("!errors");
+    const r = msg.captured.replies[0] || "";
+    // for non-admin, !errors falls through text matching → unknown command
+    if (!r.includes("Perintah tidak dikenali"))
+      return `expected unknown-command, got: ${summarize(r)}`;
+  });
+
   console.log("\n────── results ──────");
   console.log(`${COLOR.green(`pass: ${pass}`)}   ${fail > 0 ? COLOR.red(`fail: ${fail}`) : `fail: ${fail}`}   total: ${testNum}`);
 

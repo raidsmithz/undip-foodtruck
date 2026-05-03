@@ -403,6 +403,40 @@ const reminderQuotaEmpty = (email) =>
   `*Reminder*\nAkun *_${email}_* tidak memiliki kuota. ` +
   "Beli kuota: *_ufood akun N beli_*.";
 
+const adminErrors = (rows) => {
+  if (!rows || rows.length === 0)
+    return "_Tidak ada error tercatat di error_logs._";
+  const header = `*Last ${rows.length} errors* (terbaru di atas)\n`;
+  const items = rows.map((r) => {
+    const t = r.created_at
+      ? format(new Date(r.created_at), "dd/MM HH:mm")
+      : "?";
+    const wa = r.wa_number ? r.wa_number.replace("@c.us", "") : "system";
+    const cmd = (r.command || "").slice(0, 30);
+    const err = (r.error_message || "").slice(0, 80);
+    return `\`${t}\` *${wa}* → \`${cmd}\`\n   ${err}`;
+  });
+  return header + items.join("\n\n");
+};
+
+const adminStats = (s) =>
+  `*Sistem Stats — admin*\n\n` +
+  `*Pengguna terdaftar:* _${s.totalRegistered}_ ` +
+  `(${s.subscribedCount} subscribed, ${s.blockedCount} blocked)\n` +
+  `*Akun SSO:* _${s.totalSso}_ (${s.loggedInSso} logged in)\n\n` +
+  `*Hari ini:* _${s.couponsTodaySuccess}_ kupon dapat / ` +
+  `_${s.attemptsToday}_ upaya\n` +
+  `*30 hari terakhir:* _${s.newUsers30d}_ pengguna baru, ` +
+  `_${s.coupons30d}_ kupon dibagikan\n\n` +
+  `*Submit aktif per lokasi:*\n` +
+  `_SA-MWA:_ ${s.submitPerLocation[1]}/30 · ` +
+  `_Student Center:_ ${s.submitPerLocation[2]}/30\n` +
+  `_Audit. FPIK:_ ${s.submitPerLocation[3]}/30 · ` +
+  `_Audit. Imam Bardjo:_ ${s.submitPerLocation[4]}/30\n\n` +
+  `*Free Trial digunakan:* _${s.freeTrialUsed}_ pengguna\n` +
+  `*Errors 24 jam terakhir:* _${s.errorsLast24h}_ ` +
+  `(cek: *_!errors_*)`;
+
 module.exports = {
   SYSTEM_VERSION,
   welcome,
@@ -460,4 +494,6 @@ module.exports = {
   reLoginSuccess,
   reminderUnsubmitted,
   reminderQuotaEmpty,
+  adminErrors,
+  adminStats,
 };

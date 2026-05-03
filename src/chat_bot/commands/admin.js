@@ -8,6 +8,8 @@ const {
   waMsgGetFreeTrialStatus,
   waMsgEditFreeTrialStatus,
   waMsgGetSubscribedNumbers,
+  errorLogRecent,
+  statsForAdmin,
 } = require("../../models/functions");
 const { unblock } = require("../state");
 
@@ -158,6 +160,20 @@ async function handleBangCommand({ msg, client, deps }) {
     }
     await msg.react("👍");
     return { reply: `Broadcast terkirim ke ${sent} nomor.` };
+  }
+  if (msg.body === "!errors" || msg.body.startsWith("!errors ")) {
+    const arg = msg.body.slice("!errors".length).trim();
+    let limit = 10;
+    if (arg) {
+      const n = parseInt(arg, 10);
+      if (!isNaN(n) && n > 0 && n <= 50) limit = n;
+    }
+    const rows = await errorLogRecent(limit);
+    return { reply: views.adminErrors(rows) };
+  }
+  if (msg.body === "!stats") {
+    const stats = await statsForAdmin();
+    return { reply: views.adminStats(stats) };
   }
   return null;
 }

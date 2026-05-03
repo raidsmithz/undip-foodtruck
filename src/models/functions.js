@@ -964,6 +964,80 @@ async function errorLogAdd(wa_number, command, err) {
   }
 }
 
+async function errorLogRecent(limit = 10) {
+  try {
+    return await ErrorLogs.findAll({
+      order: [["id", "DESC"]],
+      limit,
+      attributes: ["id", "wa_number", "command", "error_message", "created_at"],
+    });
+  } catch (e) {
+    console.error("[errorLogRecent]", e.message);
+    return [];
+  }
+}
+
+async function statsForAdmin() {
+  const now = new Date();
+  const today = new Date(now);
+  today.setHours(0, 0, 0, 0);
+  const last30d = new Date(now);
+  last30d.setDate(last30d.getDate() - 30);
+  const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+  const [
+    totalRegistered,
+    subscribedCount,
+    blockedCount,
+    totalSso,
+    loggedInSso,
+    couponsTodaySuccess,
+    attemptsToday,
+    newUsers30d,
+    coupons30d,
+    freeTrialUsed,
+    errorsLast24h,
+  ] = await Promise.all([
+    RegisteredWhatsapp.count(),
+    WAMessages.count({ where: { subscribed: true, blocked: 0 } }),
+    WAMessages.count({ where: { blocked: 1 } }),
+    SSOAccounts.count(),
+    SSOAccounts.count({ where: { status_login: 1 } }),
+    TakenCoupons.count({
+      where: { created_at: { [Op.gte]: today }, taken_success: true },
+    }),
+    TakenCoupons.count({ where: { created_at: { [Op.gte]: today } } }),
+    RegisteredWhatsapp.count({
+      where: { created_at: { [Op.gte]: last30d } },
+    }),
+    TakenCoupons.count({
+      where: { created_at: { [Op.gte]: last30d }, taken_success: true },
+    }),
+    WAMessages.count({ where: { free_trial: 1 } }),
+    ErrorLogs.count({ where: { created_at: { [Op.gte]: last24h } } }),
+  ]);
+
+  const submitPerLocation = {};
+  for (const loc of [1, 2, 3, 4]) {
+    submitPerLocation[loc] = await getCountSubmission(true, loc);
+  }
+
+  return {
+    totalRegistered,
+    subscribedCount,
+    blockedCount,
+    totalSso,
+    loggedInSso,
+    couponsTodaySuccess,
+    attemptsToday,
+    newUsers30d,
+    coupons30d,
+    freeTrialUsed,
+    errorsLast24h,
+    submitPerLocation,
+  };
+}
+
 async function ssoPickBalancedLocation(maxPerLocation = 30) {
   const counts = [1, 2, 3, 4].map((loc) =>
     getCountSubmission(true, loc).then((n) => ({ loc, n }))
@@ -1114,6 +1188,8 @@ module.exports = {
   waMsgIsBlocked,
   waMsgExpireStaleBlocks,
   errorLogAdd,
+  errorLogRecent,
+  statsForAdmin,
   ssoPickBalancedLocation,
   daftarFirstAccountWithTrial,
 };
