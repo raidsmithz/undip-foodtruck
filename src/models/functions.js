@@ -932,12 +932,16 @@ async function waMsgIsBlocked(wa_number) {
   const row = await WAMessages.findOne({ where: { wa_number } });
   if (!row) return -1;
   if (!row.blocked) return false;
-  if (row.blocked_at) {
-    const age = Date.now() - new Date(row.blocked_at).getTime();
-    if (age > BLOCKED_TTL_MS) {
-      await waMsgSetBlocked(wa_number, false);
-      return "expired";
-    }
+  // Legacy rows blocked before the blocked_at column existed have NULL —
+  // we have no idea when the block was set, so treat as expired and unblock.
+  if (!row.blocked_at) {
+    await waMsgSetBlocked(wa_number, false);
+    return "expired";
+  }
+  const age = Date.now() - new Date(row.blocked_at).getTime();
+  if (age > BLOCKED_TTL_MS) {
+    await waMsgSetBlocked(wa_number, false);
+    return "expired";
   }
   return true;
 }
@@ -946,7 +950,15 @@ async function waMsgExpireStaleBlocks() {
   const cutoff = new Date(Date.now() - BLOCKED_TTL_MS);
   const [count] = await WAMessages.update(
     { blocked: 0, blocked_at: null },
-    { where: { blocked: 1, blocked_at: { [Op.lt]: cutoff } } }
+    {
+      where: {
+        blocked: 1,
+        [Op.or]: [
+          { blocked_at: null },
+          { blocked_at: { [Op.lt]: cutoff } },
+        ],
+      },
+    }
   );
   return count;
 }
