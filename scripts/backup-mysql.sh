@@ -58,7 +58,9 @@ else
   exit $rc
 fi
 
-DELETED=$(find "$BACKUP_DIR" -name "${DB_NAME}_*.sql.gz" -mtime +"$RETENTION_DAYS" -print -delete | wc -l)
+# -maxdepth 1 so we don't trip over BT-Panel's nested per-engine dirs
+# (mysql/, mongodb/, pgsql/, redis/) that have restrictive permissions
+DELETED=$(find "$BACKUP_DIR" -maxdepth 1 -name "${DB_NAME}_*.sql.gz" -mtime +"$RETENTION_DAYS" -print -delete 2>/dev/null | wc -l)
 if [ "$DELETED" -gt 0 ]; then
   log "purged $DELETED old backup(s) older than $RETENTION_DAYS days"
 fi
