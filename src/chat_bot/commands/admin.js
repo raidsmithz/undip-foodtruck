@@ -176,7 +176,14 @@ async function handleBangCommand({ msg, client, deps }) {
     return { reply: views.adminStats(stats) };
   }
   if (msg.body === "!unread") {
+    console.log("[!unread] start");
+    try {
+      await msg.react("⏳");
+    } catch (e) {
+      console.log("[!unread] react failed:", e.message);
+    }
     const chats = await client.getChats();
+    console.log(`[!unread] getChats returned ${chats.length} chats`);
     let total = 0;
     let chatsTouched = 0;
     for (const chat of chats) {
@@ -184,9 +191,19 @@ async function handleBangCommand({ msg, client, deps }) {
       if (chat.id._serialized === "status@broadcast") continue;
       if (!chat.unreadCount || chat.unreadCount <= 0) continue;
 
-      const fetched = await chat.fetchMessages({ limit: Math.max(30, chat.unreadCount * 2) });
+      console.log(`[!unread] chat ${chat.id._serialized} has ${chat.unreadCount} unread`);
+      let fetched;
+      try {
+        fetched = await chat.fetchMessages({
+          limit: Math.max(30, chat.unreadCount * 2),
+        });
+      } catch (e) {
+        console.error(`[!unread] fetchMessages failed for ${chat.id._serialized}:`, e.message);
+        continue;
+      }
       const incoming = fetched.filter((m) => !m.fromMe);
       const unread = incoming.slice(-chat.unreadCount);
+      console.log(`[!unread]   replaying ${unread.length} messages`);
 
       for (const m of unread) {
         try {
@@ -201,7 +218,10 @@ async function handleBangCommand({ msg, client, deps }) {
       } catch (_) {}
       chatsTouched += 1;
     }
-    await msg.react("👍");
+    console.log(`[!unread] done — replayed ${total} across ${chatsTouched} chats`);
+    try {
+      await msg.react("👍");
+    } catch (_) {}
     return { reply: `Replayed ${total} unread message(s) across ${chatsTouched} chat(s).` };
   }
   return null;
