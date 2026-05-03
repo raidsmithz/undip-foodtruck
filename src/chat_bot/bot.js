@@ -18,23 +18,19 @@ const qrcode_terminal = require("qrcode-terminal");
 const router = require("./router");
 const cron = require("./cron");
 
-// ADMIN_WHATSAPP / ADMIN_WHATSAPP_SELF are single IDs used for *sending* messages
-// (cron notifications, broadcasts, etc). ADMIN_WHATSAPP_ALIASES /
-// ADMIN_WHATSAPP_SELF_ALIASES are comma-separated extra IDs that the same human
-// also uses (e.g. WA Web LID format `@lid` vs mobile `@c.us`) — only used to
-// recognize incoming messages as admin.
-const ADMIN_WHATSAPP = process.env.ADMIN_WHATSAPP || "";
-const ADMIN_WHATSAPP_SELF = process.env.ADMIN_WHATSAPP_SELF || "";
+// ADMIN_WHATSAPP / ADMIN_WHATSAPP_SELF accept comma-separated IDs so a single
+// human admin can be recognized across multiple WA identifiers (e.g. mobile
+// `@c.us` and WA Web `@lid` — same person, two IDs). The first entry is the
+// canonical sending target (cron notifications, !kirim, etc); the full list is
+// used to recognize incoming messages as admin.
 const parseIds = (s) =>
   (s || "").split(",").map((x) => x.trim()).filter(Boolean);
-const ADMIN_WHATSAPP_IDS = new Set([
-  ...(ADMIN_WHATSAPP ? [ADMIN_WHATSAPP] : []),
-  ...parseIds(process.env.ADMIN_WHATSAPP_ALIASES),
-]);
-const ADMIN_WHATSAPP_SELF_IDS = new Set([
-  ...(ADMIN_WHATSAPP_SELF ? [ADMIN_WHATSAPP_SELF] : []),
-  ...parseIds(process.env.ADMIN_WHATSAPP_SELF_ALIASES),
-]);
+const ADMIN_WHATSAPP_LIST = parseIds(process.env.ADMIN_WHATSAPP);
+const ADMIN_WHATSAPP_SELF_LIST = parseIds(process.env.ADMIN_WHATSAPP_SELF);
+const ADMIN_WHATSAPP = ADMIN_WHATSAPP_LIST[0] || "";
+const ADMIN_WHATSAPP_SELF = ADMIN_WHATSAPP_SELF_LIST[0] || "";
+const ADMIN_WHATSAPP_IDS = new Set(ADMIN_WHATSAPP_LIST);
+const ADMIN_WHATSAPP_SELF_IDS = new Set(ADMIN_WHATSAPP_SELF_LIST);
 const CHROME_EXECUTABLE_PATH =
   process.env.CHROME_EXECUTABLE_PATH ||
   "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
