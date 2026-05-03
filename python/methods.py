@@ -163,6 +163,8 @@ def run_sync_in_thread(loop, div_id, output_image, cookie_session):
 
 
 class BotUndipFoodTruck:
+    MAX_SUBMIT_ATTEMPTS = 10
+
     def __init__(
         self,
         account_id,
@@ -259,6 +261,7 @@ class BotUndipFoodTruck:
         if self.logged_in and not self.graduated:
             iteration = 1
             retry_after_failed_ten_zero_thirty = 0
+            parse_failures = 0
             while 1:
                 response = requests.get(url, cookies=self.cookies)
                 response_content = response.content.decode("utf-8")
@@ -286,7 +289,13 @@ class BotUndipFoodTruck:
                         "tanggal": option_value,
                     }
                 except Exception as e:
-                    print(f"[{self.form_data['nama']}] Error: {e}. Retry...")
+                    nama = getattr(self, "form_data", {}).get("nama", self.name_object)
+                    parse_failures += 1
+                    if parse_failures >= 10:
+                        print(f"[{nama}] Aborting check_form_options after {parse_failures} parse failures: {e}")
+                        break
+                    print(f"[{nama}] Error: {e}. Retry...({parse_failures})")
+                    time.sleep(0.5)
                     continue
                 
                 if option_value == 0:
@@ -302,7 +311,7 @@ class BotUndipFoodTruck:
                             if retry_after_failed_ten_zero_thirty < 15:
                                 retry_after_failed_ten_zero_thirty += 1
                                 time.sleep(1)
-                                iteration += 1;
+                                iteration += 1
                                 continue
                             print(
                                 f"[{self.form_data['nama']}] Stop iteration at {iteration}."
@@ -352,6 +361,12 @@ class BotUndipFoodTruck:
 
     def submit_form(self, g_recaptcha_response_value: list, recaptcha_code=None):
         if self.logged_in and not self.graduated:
+            if self.attempts_submit_form > self.MAX_SUBMIT_ATTEMPTS:
+                print(
+                    "[" + getattr(self, "form_data", {}).get("nama", self.name_object) + "]",
+                    f"Aborting submit_form after {self.attempts_submit_form - 1} attempts.",
+                )
+                return
             if recaptcha_code == None:
                 if len(g_recaptcha_response_value) > 0:
                     recaptcha_code = g_recaptcha_response_value.pop(0)
@@ -377,7 +392,7 @@ class BotUndipFoodTruck:
                     submitted_time = datetime.datetime.now().strftime("**%H:%M:%S**")
                     self.has_sent_at = datetime.datetime.now(datetime.timezone.utc)
                     break
-                except:
+                except Exception:
                     if attempts_failed_submit >= 5:
                         print("[" + self.form_data["nama"] + "] Failed to submit form!")
                         return
@@ -459,6 +474,7 @@ class BotUndipFoodTruck:
     def download_qr_code(self):
         if self.logged_in and not self.graduated:
             retry = 3
+            soup = None
             while retry > 0:
                 try:
                     response = requests.post(url + "/riwayat", cookies=self.cookies)
@@ -467,9 +483,11 @@ class BotUndipFoodTruck:
                         break
                     else:
                         retry -= 1
-                except:
+                except Exception as e:
+                    retry -= 1
+                    print(f"[{self.name_object}] download_qr_code retry: {e}")
                     continue
-            if soup.find("div", class_="qr-container"):
+            if soup is not None and soup.find("div", class_="qr-container"):
                 self.validation_url = soup.find("div", class_="qr-container")[
                     "data-content"
                 ]

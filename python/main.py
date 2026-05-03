@@ -131,6 +131,7 @@ def solving_recaptcha(instances, wait=True):
             else:
                 if ticketing_index >= len(instances):
                     break
+            time.sleep(0.05)
 
     print(
         f"**[SYS] reCaptcha solver finished in {time.time() - solver_start_time:.2f}s and got {len_array_recaptcha_codes} codes"
@@ -159,7 +160,7 @@ def submitting_forms(instances):
             )
             for i, instance in enumerate(instances, 1):
                 thread = threading.Thread(
-                    target=instance.check_form_options, args=(True)
+                    target=instance.check_form_options, args=(True,)
                 )
                 thread.start()
                 retry_checking_option_threading_instances.append(thread)
