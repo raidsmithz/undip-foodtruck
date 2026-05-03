@@ -204,10 +204,14 @@ const lokasiSnapshot = (idx, account, oldLoc, newLoc) =>
   `✅ *Akun ${idx} (${account.email})*\n` +
   snapshotLine("Lokasi", locationName(oldLoc), locationName(newLoc));
 
+const LOCATION_OPTIONS_BLOCK =
+  "*1.* Gedung SA-MWA\n" +
+  "*2.* Student Center\n" +
+  "*3.* Audit. FPIK\n" +
+  "*4.* Audit. Imam Bardjo";
+
 const lokasiInvalid = () =>
-  "Lokasi tidak tersedia. Pilihan:\n" +
-  "*1* Gedung SA-MWA · *2* Student Center · " +
-  "*3* Audit. FPIK · *4* Audit. Imam Bardjo";
+  "Lokasi tidak tersedia. Pilihan:\n" + LOCATION_OPTIONS_BLOCK;
 
 const lokasiFullActive = () =>
   "⚠️ Lokasi tujuan sudah penuh dan submit Anda sedang aktif.\n" +
@@ -217,9 +221,8 @@ const lokasiFormat = (idx, account) =>
   `*${idx}) ${account.email}*\n` +
   `*Lokasi:* _${locationName(account.pick_location)}_\n\n` +
   "Pilih lokasi:\n" +
-  "*1* Gedung SA-MWA · *2* Student Center · " +
-  "*3* Audit. FPIK · *4* Audit. Imam Bardjo\n\n" +
-  `Contoh: *_ufood akun ${idx} lokasi 3_*`;
+  LOCATION_OPTIONS_BLOCK +
+  `\n\nContoh: *_ufood akun ${idx} lokasi 3_*`;
 
 const submitSnapshot = (idx, account, oldVal, newVal) =>
   `✅ *Akun ${idx} (${account.email})*\n` +
