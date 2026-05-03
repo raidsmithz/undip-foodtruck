@@ -172,6 +172,9 @@ async function handleBangCommand({ msg, client, deps }) {
     const rows = await errorLogRecent(limit);
     return { reply: views.adminErrors(rows) };
   }
+  if (msg.body === "!admin" || msg.body === "!help") {
+    return { reply: views.adminHelp() };
+  }
   if (msg.body === "!stats") {
     const stats = await statsForAdmin();
     return { reply: views.adminStats(stats) };

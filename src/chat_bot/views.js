@@ -441,6 +441,25 @@ const adminErrors = (rows) => {
   return header + items.join("\n\n");
 };
 
+const adminHelp = () =>
+  "*Admin Commands*\n\n" +
+  "*Operasional:*\n" +
+  "- *_!login_* — trigger SSO re-login (akun status_login=3)\n" +
+  "- *_!kupon_* — trigger pengiriman kupon hari ini\n" +
+  "- *_!kirim {pesan}_* — broadcast ke semua user subscribed\n" +
+  "- *_!unread_* — replay unread messages ke router\n\n" +
+  "*Monitoring:*\n" +
+  "- *_!stats_* — stats sistem (users, SSO, submit/lokasi, errors)\n" +
+  "- *_!coupon_* — ringkasan run kupon hari ini\n" +
+  "- *_!coupon YYYY-MM-DD_* — ringkasan run tanggal tertentu\n" +
+  "- *_!errors_* — 10 error terakhir (Node + Python)\n" +
+  "- *_!errors N_* — N error terakhir (max 50)\n\n" +
+  "*Reply ke pesan:*\n" +
+  "- Reply image bukti bayar dengan *_ya 0_* — aktifkan Free Trial 2x\n" +
+  "- Reply image bukti bayar dengan *_ya 4_* / *_ya 16_* — tambah kuota\n" +
+  "- Reply image bukti bayar dengan *_tidak_* — tolak pembayaran\n" +
+  "- Reply pesan ping dengan *_sudah_* — resolve ping handoff";
+
 const adminCouponRun = (r) => {
   const locNames = {
     1: "SA-MWA",
@@ -549,4 +568,5 @@ module.exports = {
   adminErrors,
   adminStats,
   adminCouponRun,
+  adminHelp,
 };
