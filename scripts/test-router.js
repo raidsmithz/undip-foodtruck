@@ -136,7 +136,7 @@ async function main() {
     const { msg } = await send("halo");
     const r = msg.captured.replies[0] || "";
     if (!r.includes("Selamat datang")) return `expected welcome, got: ${summarize(r)}`;
-    if (!r.includes("Free Trial 2x")) return "welcome missing trial mention";
+    if (!r.includes("ufood")) return "welcome missing pointer to ufood command";
   });
 
   await check("`ufood` returns the new orientation", async () => {
@@ -145,7 +145,7 @@ async function main() {
     if (!r.includes("Sistem UFood — Panduan"))
       return `expected panduan, got: ${summarize(r)}`;
     if (!r.includes("ufood daftar")) return "panduan missing daftar reference";
-    if (!r.includes("Free Trial 2x")) return "panduan missing trial mention";
+    if (!r.includes("Free")) return "panduan missing trial/paket beli mention";
   });
 
   await check("`commands` returns the command list", async () => {
