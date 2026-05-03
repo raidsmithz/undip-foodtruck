@@ -41,6 +41,7 @@ const deps = {
   // late-bound: cron.start exposes these so admin's !login / !kupon can call them
   doLoginAccounts: () => cron.doLoginAccounts(client),
   sendCoupons: () => cron.sendCoupons(client),
+  router,
 };
 
 (async () => {
