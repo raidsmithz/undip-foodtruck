@@ -58,9 +58,21 @@ else
   exit $rc
 fi
 
-# -maxdepth 1 so we don't trip over BT-Panel's nested per-engine dirs
-# (mysql/, mongodb/, pgsql/, redis/) that have restrictive permissions
-DELETED=$(find "$BACKUP_DIR" -maxdepth 1 -name "${DB_NAME}_*.sql.gz" -mtime +"$RETENTION_DAYS" -print -delete 2>/dev/null | wc -l)
+# Pure shell loop — avoids `find` entirely so we don't trip over BT-Panel's
+# nested per-engine dirs (mysql/, mongodb/, pgsql/, redis/) which it keeps
+# at mode 600. Glob expansion only sees direct children.
+DELETED=0
+NOW_EPOCH=$(date +%s)
+CUTOFF_EPOCH=$(( NOW_EPOCH - RETENTION_DAYS * 86400 ))
+shopt -s nullglob
+for f in "$BACKUP_DIR/${DB_NAME}_"*.sql.gz; do
+  [ -f "$f" ] || continue
+  MTIME=$(stat -c %Y "$f" 2>/dev/null || echo "$NOW_EPOCH")
+  if [ "$MTIME" -lt "$CUTOFF_EPOCH" ]; then
+    rm -f "$f" && DELETED=$((DELETED + 1))
+  fi
+done
+shopt -u nullglob
 if [ "$DELETED" -gt 0 ]; then
   log "purged $DELETED old backup(s) older than $RETENTION_DAYS days"
 fi
