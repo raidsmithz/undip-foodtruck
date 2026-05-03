@@ -687,6 +687,19 @@ async function couponsUpdateWASent(sso_id) {
   }
 }
 
+async function couponsLatestEntryDate() {
+  try {
+    const latestEntry = await TakenCoupons.findOne({
+      order: [["created_at", "DESC"]],
+      attributes: ["created_at"],
+    });
+    return latestEntry ? new Date(latestEntry.created_at) : null;
+  } catch (e) {
+    console.error("[couponsLatestEntryDate]", e.message);
+    return null;
+  }
+}
+
 async function couponsCountLatestEntriesLocation(pick_location, taken_success) {
   try {
     const latestEntry = await TakenCoupons.findOne({
@@ -1244,6 +1257,7 @@ module.exports = {
   couponsCheckTakenToday,
   couponsUpdateWASent,
   couponsCountLatestEntriesLocation,
+  couponsLatestEntryDate,
   couponsGetAllEntriesToday,
   getCombinedSSOAccounts,
   getFalseSubmissionAccountsToday,

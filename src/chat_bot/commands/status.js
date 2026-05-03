@@ -5,6 +5,7 @@ const {
   ssoCountTotalAccounts,
   getCountSubmission,
   couponsCountLatestEntriesLocation,
+  couponsLatestEntryDate,
 } = require("../../models/functions");
 
 const MAX_PER_LOCATION = 30;
@@ -16,10 +17,11 @@ module.exports = {
     return body === "ufood status" ? {} : null;
   },
   async handle() {
-    const [totalCoupons, totalUsers, totalSso] = await Promise.all([
+    const [totalCoupons, totalUsers, totalSso, latestRunDate] = await Promise.all([
       couponsCountTakenEntries(),
       registeredTotalAccounts(),
       ssoCountTotalAccounts(),
+      couponsLatestEntryDate(),
     ]);
     const perLocation = {};
     const pickupToday = {};
@@ -36,6 +38,7 @@ module.exports = {
         totalSso,
         perLocation,
         pickupToday,
+        latestRunDate,
         maxPerLocation: MAX_PER_LOCATION,
       }),
     };

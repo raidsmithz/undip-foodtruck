@@ -349,6 +349,7 @@ const status = ({
   totalSso,
   perLocation,
   pickupToday,
+  latestRunDate,
   maxPerLocation,
 }) => {
   const lines = [
@@ -364,7 +365,19 @@ const status = ({
     const tag = n >= maxPerLocation ? " ❌" : "";
     lines.push(`_${locationName(loc)}:_ ${n}/${maxPerLocation}${tag}`);
   }
-  lines.push("", "*Pengambilan Hari Ini:*");
+  let pickupHeader = "*Pengambilan Terakhir:*";
+  if (latestRunDate) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const runDay = new Date(latestRunDate);
+    runDay.setHours(0, 0, 0, 0);
+    if (runDay.getTime() === today.getTime()) {
+      pickupHeader = "*Pengambilan Hari Ini:*";
+    } else {
+      pickupHeader = `*Pengambilan Terakhir (${format(latestRunDate, "dd/MM/yyyy")}):*`;
+    }
+  }
+  lines.push("", pickupHeader);
   for (const loc of [1, 2, 3, 4]) {
     const { success, total } = pickupToday[loc];
     lines.push(`_${locationName(loc)}:_ ${success}/${total}`);
