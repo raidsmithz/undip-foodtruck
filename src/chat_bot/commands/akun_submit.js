@@ -31,12 +31,12 @@ module.exports = {
       return { reply: views.submitFormat(params.n, account) };
 
     if (params.enable && account.available_quota === 0)
-      return { reply: views.submitNoQuota() };
+      return { reply: views.submitNoQuota(params.n) };
 
     if (params.enable) {
       const count = await getCountSubmission(true, account.pick_location);
       if (count >= MAX_PER_LOCATION)
-        return { reply: views.submitLocationFull() };
+        return { reply: views.submitLocationFull(params.n) };
     }
 
     const oldVal = !!account.enable_submit;

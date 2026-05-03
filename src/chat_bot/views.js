@@ -40,17 +40,21 @@ const ufoodPanduan = () =>
 
 const commandsList = () =>
   "*Daftar Perintah UFood*\n\n" +
+  "_Angka *1* di bawah = nomor akun. Cek nomor akun Anda lewat *_ufood akun_* (kalau punya 2 akun, gantilah jadi *2*, dst)._\n\n" +
   "*Mulai:*\n" +
   "• *_ufood_* — panduan & aturan\n" +
   "• *_ufood daftar {email} {password}_* — daftar akun (free trial 2x)\n\n" +
   "*Kelola akun:*\n" +
-  "• *_ufood akun_* — daftar akun + status\n" +
-  "• *_ufood akun N_* — detail akun ke-N\n" +
-  "• *_ufood akun N beli_* — beli kuota (QRIS)\n" +
-  "• *_ufood akun N ganti {email} {password}_* — ganti kredensial\n" +
-  "• *_ufood akun N lokasi {1-4}_* — atur lokasi pengambilan\n" +
-  "• *_ufood akun N submit {enable|disable}_* — atur submit otomatis\n" +
-  "• *_ufood akun N hapus_* — hapus akun (perlu konfirmasi *ya*)\n\n" +
+  "• *_ufood akun_* — daftar semua akun + status\n" +
+  "• *_ufood akun 1_* — detail akun ke-1\n" +
+  "• *_ufood akun 1 beli_* — beli kuota (QRIS)\n" +
+  "• *_ufood akun 1 ganti {email} {password}_* — ganti kredensial\n" +
+  "• *_ufood akun 1 lokasi_* — lihat lokasi sekarang & opsi ubah\n" +
+  "• *_ufood akun 1 lokasi 1_* — set lokasi (1-4)\n" +
+  "• *_ufood akun 1 submit_* — lihat status submit & opsi ubah\n" +
+  "• *_ufood akun 1 submit enable_* — nyalakan submit otomatis\n" +
+  "• *_ufood akun 1 submit disable_* — matikan submit\n" +
+  "• *_ufood akun 1 hapus_* — hapus akun (perlu konfirmasi *ya*)\n\n" +
   "*Lainnya:*\n" +
   "• *_ufood status_* — statistik & kuota lokasi\n" +
   "• *_ufood subscribe_* / *_ufood unsubscribe_* — toggle notifikasi update\n" +
@@ -72,7 +76,7 @@ const daftarBadEmail = () =>
 
 const daftarMaxAccounts = (max) =>
   `Maksimal pendaftaran hanya ${max} akun per nomor WhatsApp.\n` +
-  "Hapus salah satu akun lewat *_ufood akun N hapus_* untuk daftar akun baru.";
+  "Hapus salah satu akun (contoh: *_ufood akun 1 hapus_*) sebelum daftar akun baru.";
 
 const daftarSuccessWithTrial = ({ index, email, location, oldQuota, newQuota, submitEnabled }) =>
   `✅ *Akun ${index} terdaftar + Free Trial aktif!* 🎁\n\n` +
@@ -167,22 +171,32 @@ const akunListItem = (idx, account, kuponLabel) =>
   `*Submit:* _${account.enable_submit ? "Enabled" : "Disabled"}_\n` +
   `*Kuota:* _${account.available_quota}x_`;
 
-const akunListFooter = () =>
-  "*Daftar Perintah Konfigurasi*\n" +
-  "Detail akun N: *_ufood akun N_*\n" +
-  "Beli kuota: *_ufood akun N beli_*\n" +
-  "Ganti email/password: *_ufood akun N ganti {email} {password}_*\n" +
-  "Atur lokasi: *_ufood akun N lokasi {1-4}_*\n" +
-  "Atur submit: *_ufood akun N submit {enable|disable}_*\n" +
-  "Hapus akun: *_ufood akun N hapus_*";
+const akunListFooter = (totalAccounts) => {
+  const example = totalAccounts > 1 ? `1 sampai ${totalAccounts}` : "1";
+  return (
+    "*Konfigurasi per akun*\n" +
+    `_Ganti angka *1* di bawah dengan nomor akun Anda (${example})._\n\n` +
+    "• Detail akun: *_ufood akun 1_*\n" +
+    "• Beli kuota: *_ufood akun 1 beli_*\n" +
+    "• Atur lokasi: *_ufood akun 1 lokasi_*\n" +
+    "• Atur submit: *_ufood akun 1 submit_*\n" +
+    "• Ganti email/password: *_ufood akun 1 ganti {email} {password}_*\n" +
+    "• Hapus akun: *_ufood akun 1 hapus_*\n\n" +
+    "Lihat semua perintah: *_commands_*"
+  );
+};
 
 const akunDetail = (idx, account) =>
   `*${idx}) ${account.email}*\n` +
   `*Lokasi:* _${locationName(account.pick_location)}_\n` +
   `*Submit:* _${account.enable_submit ? "Enabled" : "Disabled"}_\n` +
   `*Kuota:* _${account.available_quota}x_\n\n` +
-  "Tambahkan: *_beli_*, *_ganti {email} {password}_*, " +
-  "*_lokasi {1-4}_*, *_submit {enable|disable}_*, atau *_hapus_*.";
+  "*Tindakan:*\n" +
+  `• Beli kuota: *_ufood akun ${idx} beli_*\n` +
+  `• Ubah lokasi: *_ufood akun ${idx} lokasi_*\n` +
+  `• Atur submit: *_ufood akun ${idx} submit_*\n` +
+  `• Ganti email/password: *_ufood akun ${idx} ganti {email} {password}_*\n` +
+  `• Hapus akun: *_ufood akun ${idx} hapus_*`;
 
 const akunNotFound = (n) => `Anda tidak memiliki akun nomor (${n}).`;
 
@@ -215,13 +229,13 @@ const submitSnapshot = (idx, account, oldVal, newVal) =>
     newVal ? "Enabled" : "Disabled"
   );
 
-const submitNoQuota = () =>
+const submitNoQuota = (idx) =>
   "Kuota pengambilan akun ini sudah habis. Beli kuota dulu: " +
-  "*_ufood akun N beli_*.";
+  `*_ufood akun ${idx || 1} beli_*.`;
 
-const submitLocationFull = () =>
+const submitLocationFull = (idx) =>
   "⚠️ Lokasi akun ini sudah penuh (30/30). Submit tidak diaktifkan.\n" +
-  "Pilih lokasi lain via *_ufood akun N lokasi {1-4}_* — cek " +
+  `Pilih lokasi lain via *_ufood akun ${idx || 1} lokasi_* — cek ` +
   "ketersediaan dengan *_ufood status_*.";
 
 const submitFormat = (idx, account) =>
@@ -237,7 +251,7 @@ const gantiSnapshot = (idx, account, oldEmail, newEmail) =>
   "Status login akan terupdate dalam <30 menit.";
 
 const gantiFormat = (idx) =>
-  "Format: *_ufood akun N ganti {email} {password}_*\n" +
+  `Format: *_ufood akun ${idx} ganti {email} {password}_*\n` +
   `Contoh: *_ufood akun ${idx} ganti baru@students.undip.ac.id passwordbaru_*`;
 
 const beliQrisCaption = (idx, account, ssoCount) =>
@@ -253,7 +267,7 @@ const beliQrisCaption = (idx, account, ssoCount) =>
   `Cek ketersediaan kuota lokasi: *_ufood status_* (sistem _${ssoCount} akun_).`;
 
 const imageNoPaySelection = () =>
-  "Belum memilih akun pembelian. Ketik *_ufood akun N beli_* terlebih " +
+  "Belum memilih akun pembelian. Ketik *_ufood akun 1 beli_* (atau ganti *1* dengan nomor akun Anda) terlebih " +
   "dahulu untuk dapat QRIS, lalu kirim ulang bukti bayar.";
 
 const imageNoAccounts = () =>

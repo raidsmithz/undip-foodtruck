@@ -54,6 +54,8 @@ module.exports = {
       } else label = waitingLabel;
       items.push(views.akunListItem(i + 1, account, label));
     }
-    return { reply: items.join("\n\n") + "\n\n" + views.akunListFooter() };
+    return {
+      reply: items.join("\n\n") + "\n\n" + views.akunListFooter(sso_ids.length),
+    };
   },
 };
