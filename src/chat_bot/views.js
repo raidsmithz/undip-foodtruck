@@ -21,7 +21,7 @@ const ufoodPanduan = () =>
   "2. (opsional) Atur lokasi: *_ufood akun 1 lokasi_*\n" +
   "3. Tunggu kupon hari kerja jam 10:00 WIB.\n\n" +
   "*Paket beli:*\n" +
-  "- 🎁 Free Trial 2x (otomatis untuk akun pertama)\n" +
+  "- 2x Free (akun pertama)\n" +
   "- 4x Rp15.000\n" +
   "- 16x Rp50.000\n\n" +
   "*Aturan singkat:*\n" +
