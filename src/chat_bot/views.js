@@ -19,24 +19,19 @@ const welcome = (ssoCount) =>
 
 const ufoodPanduan = () =>
   "*Sistem UFood — Panduan*\n\n" +
-  "Sistem pribadi (bukan layanan resmi Undip) yang mengambil kupon " +
-  "Foodtruck otomatis dari portal SSO atas nama Anda dan mengirim QR-nya " +
-  "ke WhatsApp. Khusus mahasiswa aktif Undip dengan email " +
-  "*@students.undip.ac.id*.\n\n" +
+  "Auto-ambil kupon Foodtruck Undip dari SSO, kirim QR ke WhatsApp. " +
+  "Khusus mahasiswa aktif (*@students.undip.ac.id*).\n\n" +
   "*Cara pakai:*\n" +
-  "1. Daftar akun: *_ufood daftar {email} {password}_*\n" +
-  "   _(otomatis dapat *Free Trial 2x* untuk akun pertama)_\n" +
-  "2. Atur lokasi (opsional): *_ufood akun 1 lokasi {1-4}_*\n" +
-  "3. Tunggu kupon dikirim setiap hari kerja sekitar jam 10:00 WIB.\n\n" +
-  "*Aturan:*\n" +
-  "• Sistem pribadi, bukan organisasi resmi Undip\n" +
-  "• Maks 3 akun per nomor WA, 30 akun aktif submit per lokasi (total 120)\n" +
-  "• Kuota *tidak* dikurangi jika sistem gagal ambil kupon\n" +
-  "• Data SSO dienkripsi, hanya dipakai untuk ambil kupon\n" +
-  "• Dilarang menyebar hoax, kasar, atau menyalahgunakan sistem\n\n" +
-  `*Harga (setelah trial habis):* ${PRICING}\n\n` +
-  `*Lokasi:* ${LOCATION_LIST_LINE}\n\n` +
-  "Daftar perintah lengkap: *_commands_*  ·  Bantuan: *_ping_*";
+  "1. Daftar: *_ufood daftar {email} {password}_*\n" +
+  "2. (opsional) Atur lokasi: *_ufood akun 1 lokasi_*\n" +
+  "3. Tunggu kupon hari kerja jam 10:00 WIB.\n\n" +
+  "🎁 *Free Trial 2x* otomatis untuk akun pertama.\n" +
+  `*Harga setelah trial:* ${PRICING}\n\n` +
+  "*Aturan singkat:*\n" +
+  "• Maks 3 akun/WA · 30 submit/lokasi\n" +
+  "• Kuota _tidak dikurangi_ jika gagal ambil kupon\n" +
+  "• Data SSO dienkripsi, sistem pribadi (bukan resmi Undip)\n\n" +
+  "Daftar perintah: *_commands_*  ·  Bantuan admin: *_ping_*";
 
 const commandsList = () =>
   "*Daftar Perintah UFood*\n\n" +
