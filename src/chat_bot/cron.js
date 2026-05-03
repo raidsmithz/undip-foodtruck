@@ -1,6 +1,7 @@
 const schedule = require("node-schedule");
 const { MessageMedia } = require("whatsapp-web.js");
 const views = require("./views");
+const { humanSleep } = require("./throttle");
 const loginAccounts = require("../undip_login/login_accounts");
 const {
   ssoGetAccount,
@@ -39,6 +40,7 @@ async function sendCoupons(client) {
     const account = await ssoGetAccount(coupon.sso_id);
     const wa = await registeredGetWANumberBySSOID(coupon.sso_id);
     if (!account || !wa) continue;
+    if (sent > 0) await humanSleep();
     if (coupon.taken_success) {
       try {
         const media = MessageMedia.fromFilePath(`./python/${coupon.coupon_file}`);
@@ -64,54 +66,59 @@ async function doLoginAccounts(client) {
   const beforeMap = {};
   for (const acc of before) beforeMap[acc.dataValues.id] = acc.dataValues.status_login;
   const updatedIds = await loginAccounts();
+  let notified = 0;
   for (const id of updatedIds) {
     const account = await ssoGetAccount(id);
     if (!account) continue;
     const wa = await registeredGetWANumberBySSOID(id);
     if (!wa) continue;
+    let willSend = null;
     switch (account.status_login) {
       case 1: {
         const previous = beforeMap[id];
-        if (previous === 0) {
-          try {
-            await client.sendMessage(wa, views.reLoginSuccess(account.email));
-          } catch (_) {}
-        }
+        if (previous === 0) willSend = views.reLoginSuccess(account.email);
         break;
       }
       case 4:
-        try {
-          await client.sendMessage(wa, views.reLoginPasswordWrong(account.email));
-        } catch (_) {}
+        willSend = views.reLoginPasswordWrong(account.email);
         break;
       case 5:
-        try {
-          await client.sendMessage(wa, views.reLoginEmailWrong(account.email));
-        } catch (_) {}
+        willSend = views.reLoginEmailWrong(account.email);
         break;
     }
+    if (willSend === null) continue;
+    if (notified > 0) await humanSleep();
+    try {
+      await client.sendMessage(wa, willSend);
+    } catch (_) {}
+    notified += 1;
   }
 }
 
 async function reminderActivationSubmission(client) {
   console.log("TASK: Reminding to activate submission and buy quota...");
   const accounts = await getFalseSubmissionAccountsToday();
+  let sent = 0;
   for (const acc of accounts) {
     const account = await ssoGetAccount(acc.id);
     if (!account) continue;
     const wa = await registeredGetWANumberBySSOID(acc.id);
     if (!wa) continue;
     if (acc.available_quota > 0) {
+      if (sent > 0) await humanSleep();
       try {
         await client.sendMessage(
           wa,
           views.reminderUnsubmitted(account.email, account.available_quota)
         );
+        sent += 1;
       } catch (_) {}
     } else if (acc.reminded === 0) {
+      if (sent > 0) await humanSleep();
       try {
         await client.sendMessage(wa, views.reminderQuotaEmpty(account.email));
         await ssoEditAccountReminded(acc.id, true);
+        sent += 1;
       } catch (_) {}
     }
   }

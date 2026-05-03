@@ -1,4 +1,5 @@
 const views = require("../views");
+const { humanSleep } = require("../throttle");
 const {
   ssoGetAccount,
   ssoEditAccountQuota,
@@ -151,10 +152,10 @@ async function handleBangCommand({ msg, client, deps }) {
     const numbers = await waMsgGetSubscribedNumbers();
     let sent = 0;
     for (const wa of numbers) {
+      if (sent > 0) await humanSleep();
       try {
         await client.sendMessage(wa, sendMessage);
         sent += 1;
-        await new Promise((r) => setTimeout(r, 600 + Math.random() * 600));
       } catch (e) {
         // skip failed sends silently
       }
@@ -222,6 +223,7 @@ async function handleBangCommand({ msg, client, deps }) {
       console.log(`[!unread]   replaying ${unread.length} messages`);
 
       for (const m of unread) {
+        if (total > 0) await humanSleep();
         try {
           await deps.router.route(m, client, deps);
           total += 1;
