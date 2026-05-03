@@ -10,12 +10,7 @@ const welcome = (ssoCount) =>
   "Selamat datang di *Sistem UFood!* 🍱\n" +
   "Pengambilan kupon Foodtruck Undip otomatis lewat WhatsApp.\n\n" +
   `*Jumlah Akun Terdaftar:* _${ssoCount} akun_.\n\n` +
-  "*Cara pakai:*\n" +
-  "1. Daftar akun: *_ufood daftar {email} {password}_*\n" +
-  "   _Otomatis dapat *Free Trial 2x* untuk akun pertama_\n" +
-  "2. Atur lokasi (opsional): *_ufood akun 1 lokasi {1-4}_*\n" +
-  "3. Tunggu kupon hari kerja jam 10:00.\n\n" +
-  "Aturan & info lengkap: ketik *_ufood_*.";
+  "Cara pakai, aturan & info lengkap: ketik *_ufood_*.";
 
 const ufoodPanduan = () =>
   "*Sistem UFood — Panduan*\n\n" +
