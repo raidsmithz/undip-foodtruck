@@ -20,35 +20,37 @@ const ufoodPanduan = () =>
   "1. Daftar: *_ufood daftar {email} {password}_*\n" +
   "2. (opsional) Atur lokasi: *_ufood akun 1 lokasi_*\n" +
   "3. Tunggu kupon hari kerja jam 10:00 WIB.\n\n" +
-  "🎁 *Free Trial 2x* otomatis untuk akun pertama.\n" +
-  `*Harga setelah trial:* ${PRICING}\n\n` +
+  "*Paket beli:*\n" +
+  "- 🎁 Free Trial 2x (otomatis untuk akun pertama)\n" +
+  "- 4x Rp15.000\n" +
+  "- 16x Rp50.000\n\n" +
   "*Aturan singkat:*\n" +
-  "• Maks 3 akun/WA · 30 submit/lokasi\n" +
-  "• Kuota _tidak dikurangi_ jika gagal ambil kupon\n" +
-  "• Data SSO dienkripsi, sistem pribadi (bukan resmi Undip)\n\n" +
+  "- Maks 3 akun/WA · 30 submit/lokasi\n" +
+  "- Kuota _tidak dikurangi_ jika gagal ambil kupon\n" +
+  "- Data SSO dienkripsi, sistem pribadi (bukan resmi Undip)\n\n" +
   "Daftar perintah: *_commands_*  ·  Bantuan admin: *_ping_*";
 
 const commandsList = () =>
   "*Daftar Perintah UFood*\n\n" +
   "_Angka *1* di bawah = nomor akun. Cek nomor akun Anda lewat *_ufood akun_* (kalau punya 2 akun, gantilah jadi *2*, dst)._\n\n" +
   "*Mulai:*\n" +
-  "• *_ufood_* — panduan & aturan\n" +
-  "• *_ufood daftar {email} {password}_* — daftar akun (free trial 2x)\n\n" +
+  "- *_ufood_* — panduan & aturan\n" +
+  "- *_ufood daftar {email} {password}_* — daftar akun (free trial 2x)\n\n" +
   "*Kelola akun:*\n" +
-  "• *_ufood akun_* — daftar semua akun + status\n" +
-  "• *_ufood akun 1_* — detail akun ke-1\n" +
-  "• *_ufood akun 1 beli_* — beli kuota (QRIS)\n" +
-  "• *_ufood akun 1 ganti {email} {password}_* — ganti kredensial\n" +
-  "• *_ufood akun 1 lokasi_* — lihat lokasi sekarang & opsi ubah\n" +
-  "• *_ufood akun 1 lokasi 1_* — set lokasi (1-4)\n" +
-  "• *_ufood akun 1 submit_* — lihat status submit & opsi ubah\n" +
-  "• *_ufood akun 1 submit enable_* — nyalakan submit otomatis\n" +
-  "• *_ufood akun 1 submit disable_* — matikan submit\n" +
-  "• *_ufood akun 1 hapus_* — hapus akun (perlu konfirmasi *ya*)\n\n" +
+  "- *_ufood akun_* — daftar semua akun + status\n" +
+  "- *_ufood akun 1_* — detail akun ke-1\n" +
+  "- *_ufood akun 1 beli_* — beli kuota (QRIS)\n" +
+  "- *_ufood akun 1 ganti {email} {password}_* — ganti kredensial\n" +
+  "- *_ufood akun 1 lokasi_* — lihat lokasi sekarang & opsi ubah\n" +
+  "- *_ufood akun 1 lokasi 1_* — set lokasi (1-4)\n" +
+  "- *_ufood akun 1 submit_* — lihat status submit & opsi ubah\n" +
+  "- *_ufood akun 1 submit enable_* — nyalakan submit otomatis\n" +
+  "- *_ufood akun 1 submit disable_* — matikan submit\n" +
+  "- *_ufood akun 1 hapus_* — hapus akun (perlu konfirmasi *ya*)\n\n" +
   "*Lainnya:*\n" +
-  "• *_ufood status_* — statistik & kuota lokasi\n" +
-  "• *_ufood subscribe_* / *_ufood unsubscribe_* — toggle notifikasi update\n" +
-  "• *_ping_* — minta bantuan admin (perlu konfirmasi *ya*)";
+  "- *_ufood status_* — statistik & kuota lokasi\n" +
+  "- *_ufood subscribe_* / *_ufood unsubscribe_* — toggle notifikasi update\n" +
+  "- *_ping_* — minta bantuan admin (perlu konfirmasi *ya*)";
 
 const daftarFormat = () =>
   "Format: *_ufood daftar {email} {password}_*\n" +
@@ -166,12 +168,12 @@ const akunListFooter = (totalAccounts) => {
   return (
     "*Konfigurasi per akun*\n" +
     `_Ganti angka *1* di bawah dengan nomor akun Anda (${example})._\n\n` +
-    "• Detail akun: *_ufood akun 1_*\n" +
-    "• Beli kuota: *_ufood akun 1 beli_*\n" +
-    "• Atur lokasi: *_ufood akun 1 lokasi_*\n" +
-    "• Atur submit: *_ufood akun 1 submit_*\n" +
-    "• Ganti email/password: *_ufood akun 1 ganti {email} {password}_*\n" +
-    "• Hapus akun: *_ufood akun 1 hapus_*\n\n" +
+    "- Detail akun: *_ufood akun 1_*\n" +
+    "- Beli kuota: *_ufood akun 1 beli_*\n" +
+    "- Atur lokasi: *_ufood akun 1 lokasi_*\n" +
+    "- Atur submit: *_ufood akun 1 submit_*\n" +
+    "- Ganti email/password: *_ufood akun 1 ganti {email} {password}_*\n" +
+    "- Hapus akun: *_ufood akun 1 hapus_*\n\n" +
     "Lihat semua perintah: *_commands_*"
   );
 };
@@ -182,11 +184,11 @@ const akunDetail = (idx, account) =>
   `*Submit:* _${account.enable_submit ? "Enabled" : "Disabled"}_\n` +
   `*Kuota:* _${account.available_quota}x_\n\n` +
   "*Tindakan:*\n" +
-  `• Beli kuota: *_ufood akun ${idx} beli_*\n` +
-  `• Ubah lokasi: *_ufood akun ${idx} lokasi_*\n` +
-  `• Atur submit: *_ufood akun ${idx} submit_*\n` +
-  `• Ganti email/password: *_ufood akun ${idx} ganti {email} {password}_*\n` +
-  `• Hapus akun: *_ufood akun ${idx} hapus_*`;
+  `- Beli kuota: *_ufood akun ${idx} beli_*\n` +
+  `- Ubah lokasi: *_ufood akun ${idx} lokasi_*\n` +
+  `- Atur submit: *_ufood akun ${idx} submit_*\n` +
+  `- Ganti email/password: *_ufood akun ${idx} ganti {email} {password}_*\n` +
+  `- Hapus akun: *_ufood akun ${idx} hapus_*`;
 
 const akunNotFound = (n) => `Anda tidak memiliki akun nomor (${n}).`;
 
