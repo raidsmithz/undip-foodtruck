@@ -1050,6 +1050,63 @@ async function statsForAdmin() {
   };
 }
 
+async function couponRunSummary(targetDate = null) {
+  const day = targetDate ? new Date(targetDate) : new Date();
+  day.setHours(0, 0, 0, 0);
+  const next = new Date(day);
+  next.setDate(next.getDate() + 1);
+
+  const rows = await TakenCoupons.findAll({
+    where: { created_at: { [Op.gte]: day, [Op.lt]: next } },
+    attributes: [
+      "id",
+      "sso_id",
+      "taken_success",
+      "pick_location",
+      "found_option_at",
+      "send_at",
+      "has_sent_at",
+      "wa_sent_at",
+    ],
+    raw: true,
+  });
+
+  const total = rows.length;
+  const success = rows.filter((r) => r.taken_success).length;
+  const failed = total - success;
+
+  const perLocation = { 1: { ok: 0, fail: 0 }, 2: { ok: 0, fail: 0 }, 3: { ok: 0, fail: 0 }, 4: { ok: 0, fail: 0 } };
+  for (const r of rows) {
+    const loc = r.pick_location;
+    if (!perLocation[loc]) perLocation[loc] = { ok: 0, fail: 0 };
+    if (r.taken_success) perLocation[loc].ok += 1;
+    else perLocation[loc].fail += 1;
+  }
+
+  const sentToWA = rows.filter((r) => r.wa_sent_at).length;
+  const successWithFoundOption = rows.filter((r) => r.taken_success && r.found_option_at);
+  let avgFoundLatencyMs = null;
+  if (successWithFoundOption.length > 0) {
+    const targetMs = new Date(day);
+    targetMs.setHours(10, 0, 0, 0);
+    const latencies = successWithFoundOption.map(
+      (r) => new Date(r.found_option_at).getTime() - targetMs.getTime()
+    );
+    avgFoundLatencyMs =
+      latencies.reduce((a, b) => a + b, 0) / latencies.length;
+  }
+
+  return {
+    date: day.toISOString().slice(0, 10),
+    total,
+    success,
+    failed,
+    sentToWA,
+    perLocation,
+    avgFoundLatencyMs,
+  };
+}
+
 async function ssoPickBalancedLocation(maxPerLocation = 30) {
   const counts = [1, 2, 3, 4].map((loc) =>
     getCountSubmission(true, loc).then((n) => ({ loc, n }))
@@ -1202,6 +1259,7 @@ module.exports = {
   errorLogAdd,
   errorLogRecent,
   statsForAdmin,
+  couponRunSummary,
   ssoPickBalancedLocation,
   daftarFirstAccountWithTrial,
 };

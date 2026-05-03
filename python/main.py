@@ -5,6 +5,7 @@ from database import (
     ssoEditAccountByID,
     getActiveSSOAccountLocationAndCookie,
     couponsAddEntry,
+    errorLogAdd,
 )
 
 array_recaptcha_codes = []
@@ -235,14 +236,19 @@ if __name__ == "__main__":
 
     print("**[SYS] Bot system starting...")
 
-    objects = load_accounts()
-    checking_login_accounts(objects)
-    solving_recaptcha(objects)
-    if submitting_forms(objects):
-        downloading_tickets(objects)
-        uploading_data(objects)
+    try:
+        objects = load_accounts()
+        checking_login_accounts(objects)
+        solving_recaptcha(objects)
+        if submitting_forms(objects):
+            downloading_tickets(objects)
+            uploading_data(objects)
 
-    print(
-        f"**[SYS] Loaded accounts: {len(objects)}. Logged in: {logged_in_accounts}. Tickets taken: {ticket_taken_accounts}"
-    )
-    print("**[SYS] Bot system finished!")
+        print(
+            f"**[SYS] Loaded accounts: {len(objects)}. Logged in: {logged_in_accounts}. Tickets taken: {ticket_taken_accounts}"
+        )
+        print("**[SYS] Bot system finished!")
+    except Exception as e:
+        print(f"**[SYS] FATAL: {type(e).__name__}: {e}")
+        errorLogAdd("python:main", e)
+        raise

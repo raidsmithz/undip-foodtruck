@@ -10,6 +10,7 @@ const {
   waMsgGetSubscribedNumbers,
   errorLogRecent,
   statsForAdmin,
+  couponRunSummary,
 } = require("../../models/functions");
 const { unblock } = require("../state");
 
@@ -174,6 +175,18 @@ async function handleBangCommand({ msg, client, deps }) {
   if (msg.body === "!stats") {
     const stats = await statsForAdmin();
     return { reply: views.adminStats(stats) };
+  }
+  if (msg.body === "!coupon" || msg.body.startsWith("!coupon ")) {
+    const arg = msg.body.slice("!coupon".length).trim();
+    let target = null;
+    if (arg) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(arg)) {
+        return { reply: "Format: *!coupon* atau *!coupon YYYY-MM-DD*" };
+      }
+      target = arg;
+    }
+    const summary = await couponRunSummary(target);
+    return { reply: views.adminCouponRun(summary) };
   }
   if (msg.body === "!unread") {
     console.log("[!unread] start");

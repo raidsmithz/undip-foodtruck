@@ -1,3 +1,4 @@
+import traceback
 from sqlalchemy import (
     create_engine,
     ForeignKey,
@@ -5,6 +6,7 @@ from sqlalchemy import (
     Integer,
     Boolean,
     String,
+    Text,
     DateTime,
     CHAR,
     func,
@@ -366,3 +368,45 @@ def couponsAddEntry(
         session.rollback()
         print(f"Error adding entry: {e}")
         return None
+
+
+class ErrorLogs(Base):
+    __tablename__ = "error_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    wa_number = Column(String(255))
+    command = Column(String(255))
+    error_message = Column(Text, nullable=False)
+    stack = Column(Text)
+    created_at = Column(DateTime, default=func.utc_timestamp())
+
+
+@event.listens_for(ErrorLogs, "before_insert")
+def receive_before_insert(mapper, connection, target):
+    target.created_at = func.utc_timestamp()
+
+
+def errorLogAdd(command, error):
+    """Persist an exception to error_logs so it shows up in admin !errors.
+
+    `command` is a short label (e.g. "python:main", "python:login_cookie").
+    `error` may be an Exception or a string.
+    """
+    try:
+        if isinstance(error, BaseException):
+            msg = f"{type(error).__name__}: {error}"
+            stack = "".join(traceback.format_exception(type(error), error, error.__traceback__))
+        else:
+            msg = str(error)
+            stack = None
+        entry = ErrorLogs(
+            wa_number=None,
+            command=(command or "")[:255],
+            error_message=msg[:65535],
+            stack=stack,
+        )
+        session.add(entry)
+        session.commit()
+    except Exception as log_err:
+        session.rollback()
+        print(f"[errorLogAdd] failed to persist: {log_err}")

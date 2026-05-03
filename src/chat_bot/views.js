@@ -419,6 +419,36 @@ const adminErrors = (rows) => {
   return header + items.join("\n\n");
 };
 
+const adminCouponRun = (r) => {
+  const locNames = {
+    1: "SA-MWA",
+    2: "Student Center",
+    3: "Audit. FPIK",
+    4: "Audit. Imam Bardjo",
+    5: "ART Center",
+  };
+  const successRate = r.total > 0 ? Math.round((r.success / r.total) * 100) : 0;
+  let perLoc = "";
+  for (const loc of Object.keys(r.perLocation)) {
+    const v = r.perLocation[loc];
+    if (v.ok === 0 && v.fail === 0) continue;
+    perLoc += `\n_${locNames[loc] || `Lokasi ${loc}`}:_ ${v.ok} ✅ / ${v.fail} ❌`;
+  }
+  let latency = "";
+  if (r.avgFoundLatencyMs !== null) {
+    const sec = (r.avgFoundLatencyMs / 1000).toFixed(2);
+    latency = `\n*Avg latency H+:* _${sec}s_ (vs 10:00:00)`;
+  }
+  return (
+    `*Hasil Run Kupon — ${r.date}*\n\n` +
+    `*Total upaya:* _${r.total}_\n` +
+    `*Berhasil:* _${r.success}_ (${successRate}%)\n` +
+    `*Gagal:* _${r.failed}_\n` +
+    `*Terkirim ke WA:* _${r.sentToWA}_${latency}\n\n` +
+    `*Per lokasi:*${perLoc || "\n_(belum ada data)_"}`
+  );
+};
+
 const adminStats = (s) =>
   `*Sistem Stats — admin*\n\n` +
   `*Pengguna terdaftar:* _${s.totalRegistered}_ ` +
@@ -496,4 +526,5 @@ module.exports = {
   reminderQuotaEmpty,
   adminErrors,
   adminStats,
+  adminCouponRun,
 };
