@@ -82,10 +82,12 @@ async function route(msg, client, deps) {
     }
 
     // admin commands first — admin replies to forwarded messages, !login, !kupon, !kirim
-    if (
-      deps.ADMIN_WHATSAPP &&
-      (msg.from === deps.ADMIN_WHATSAPP || msg.from === deps.ADMIN_WHATSAPP_SELF)
-    ) {
+    const isAdminSender =
+      (deps.ADMIN_WHATSAPP_IDS && deps.ADMIN_WHATSAPP_IDS.has(msg.from)) ||
+      (deps.ADMIN_WHATSAPP_SELF_IDS && deps.ADMIN_WHATSAPP_SELF_IDS.has(msg.from)) ||
+      msg.from === deps.ADMIN_WHATSAPP ||
+      msg.from === deps.ADMIN_WHATSAPP_SELF;
+    if (deps.ADMIN_WHATSAPP && isAdminSender) {
       const adminResult = await commands.admin.handle({ msg, client, deps });
       if (adminResult !== null) {
         await applyResult(client, msg, adminResult);

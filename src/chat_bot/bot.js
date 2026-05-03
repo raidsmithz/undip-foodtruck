@@ -18,8 +18,16 @@ const qrcode_terminal = require("qrcode-terminal");
 const router = require("./router");
 const cron = require("./cron");
 
+// ADMIN_WHATSAPP / ADMIN_WHATSAPP_SELF can be comma-separated to allow multiple
+// identifiers per admin (e.g. mobile @c.us and WA-Web LID @lid for the same person).
 const ADMIN_WHATSAPP = process.env.ADMIN_WHATSAPP || "";
 const ADMIN_WHATSAPP_SELF = process.env.ADMIN_WHATSAPP_SELF || "";
+const ADMIN_WHATSAPP_IDS = new Set(
+  ADMIN_WHATSAPP.split(",").map((s) => s.trim()).filter(Boolean)
+);
+const ADMIN_WHATSAPP_SELF_IDS = new Set(
+  ADMIN_WHATSAPP_SELF.split(",").map((s) => s.trim()).filter(Boolean)
+);
 const CHROME_EXECUTABLE_PATH =
   process.env.CHROME_EXECUTABLE_PATH ||
   "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
@@ -38,6 +46,8 @@ let listenerInitialized = false;
 const deps = {
   ADMIN_WHATSAPP,
   ADMIN_WHATSAPP_SELF,
+  ADMIN_WHATSAPP_IDS,
+  ADMIN_WHATSAPP_SELF_IDS,
   // late-bound: cron.start exposes these so admin's !login / !kupon can call them
   doLoginAccounts: () => cron.doLoginAccounts(client),
   sendCoupons: () => cron.sendCoupons(client),
