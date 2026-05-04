@@ -15,6 +15,7 @@ const {
   listLidWaNumbers,
   mergeLidIntoCus,
   waMsgUnsubscribeInactiveBefore,
+  ssoBulkGiftSubscribed,
 } = require("../../models/functions");
 
 // Users inactive for this many days get auto-unsubscribed before any blast.
@@ -174,6 +175,37 @@ async function handleBangCommand({ msg, client, deps }) {
       reply:
         `Broadcast terkirim ke ${sent} nomor.\n` +
         (pruned > 0 ? `_(${pruned} dormant user (>${INACTIVITY_DAYS} hari) di-unsubscribe sebelum broadcast)_` : ""),
+    };
+  }
+  if (msg.body.startsWith("!gift ")) {
+    const n = parseInt(msg.body.slice("!gift ".length).trim(), 10);
+    if (!Number.isInteger(n) || n <= 0 || n > 100) {
+      return { reply: "Format: *_!gift N_* (1–100). Contoh: *_!gift 2_*" };
+    }
+    const result = await ssoBulkGiftSubscribed(n);
+    if (result.users === 0) {
+      return { reply: "Tidak ada user subscribed dengan akun terdaftar." };
+    }
+    // Notify each user with anti-ban jitter; send in background so the admin
+    // gets the summary reply quickly even if there are many recipients.
+    (async () => {
+      let notified = 0;
+      for (const u of result.perUser) {
+        if (notified > 0) await humanSleep();
+        try {
+          await client.sendMessage(u.wa_number, views.giftBonus(n, u.sso_ids.length));
+          notified += 1;
+        } catch (_) {}
+      }
+      console.log(`[!gift] notified ${notified}/${result.users}`);
+    })();
+    await msg.react("🎁");
+    return {
+      reply:
+        `🎁 *Gift +${n}x kupon* applied:\n` +
+        `*Users:* _${result.users}_\n` +
+        `*Akun SSO:* _${result.accounts}_\n` +
+        `_(notif WA dikirim ke tiap user dengan jitter — selesai dalam ~${Math.round((result.users * 1.05) / 60)} menit)_`,
     };
   }
   if (msg.body === "!sweep_inactive") {

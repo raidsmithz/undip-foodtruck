@@ -459,9 +459,17 @@ const adminHelp = () =>
   "- Reply image bukti bayar dengan *_ya 4_* / *_ya 16_* — tambah kuota\n" +
   "- Reply image bukti bayar dengan *_tidak_* — tolak pembayaran\n" +
   "- Reply pesan ping dengan *_sudah_* — resolve ping handoff\n\n" +
+  "*Hadiah:*\n" +
+  "- *_!gift N_* — tambah _N_ kupon ke setiap akun SSO milik user subscribed (max 100), kirim notif ke user\n\n" +
   "*Maintenance:*\n" +
   "- *_!migrate_lid_* — proactive merge semua @lid rows ke @c.us via WA Store\n" +
   "- *_!sweep_inactive_* — unsubscribe user dorman (>90 hari)";
+
+const giftBonus = (n, accountCount) =>
+  `🎁 *Bonus Kupon*\n\n` +
+  `Anda dapat *${n}x kupon bonus* untuk *${accountCount} akun* terdaftar Anda. ` +
+  `Selamat menikmati 🍱\n\n` +
+  `Cek detail: *_ufood akun_*`;
 
 const adminCouponRun = (r) => {
   const locNames = {
@@ -572,4 +580,5 @@ module.exports = {
   adminStats,
   adminCouponRun,
   adminHelp,
+  giftBonus,
 };

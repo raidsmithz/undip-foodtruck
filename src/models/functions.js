@@ -1174,6 +1174,53 @@ async function statsForAdmin() {
 // Bulk-disable subscription for any user whose last activity (wa_messages
 // updated_at) is older than the cutoff date. Used to prune dormant users
 // before broadcast and as a one-shot maintenance command.
+// Bulk-add `addition` to available_quota of every active sso_account that
+// belongs to a subscribed wa_number. Returns {users, accounts, totalQuota}.
+// Two queries (registereds + sso_accounts UPDATE) regardless of user count.
+async function ssoBulkGiftSubscribed(addition) {
+  if (!Number.isInteger(addition) || addition <= 0) {
+    return { users: 0, accounts: 0, perUser: [] };
+  }
+  const subs = await WAMessages.findAll({
+    where: { subscribed: 1 },
+    attributes: ["wa_number"],
+    raw: true,
+  });
+  const waSet = new Set(subs.map((s) => s.wa_number));
+  if (waSet.size === 0) return { users: 0, accounts: 0, perUser: [] };
+
+  const regs = await RegisteredWhatsapp.findAll({
+    where: { wa_number: { [Op.in]: [...waSet] } },
+    attributes: ["wa_number", "sso_ids"],
+    raw: true,
+  });
+
+  // Build (wa_number → [sso_id, …]) and a flat unique sso_id list
+  const perUser = []; // [{wa_number, sso_ids: [...]}]
+  const allSsoIds = new Set();
+  for (const r of regs) {
+    if (!r.sso_ids) continue;
+    const ids = r.sso_ids
+      .split(",")
+      .map((s) => parseInt(s.trim(), 10))
+      .filter((n) => !isNaN(n));
+    if (ids.length === 0) continue;
+    perUser.push({ wa_number: r.wa_number, sso_ids: ids });
+    for (const id of ids) allSsoIds.add(id);
+  }
+  if (allSsoIds.size === 0) return { users: 0, accounts: 0, perUser: [] };
+
+  // Single bulk increment, raw SQL so we don't trip into Sequelize updatedAt
+  // — the sso_account.updated_at is intentionally bumped here since it's a
+  // real change to the row, but we only want to touch quota field.
+  await sequelize.query(
+    "UPDATE sso_accounts SET available_quota = available_quota + :n WHERE id IN (:ids)",
+    { replacements: { n: addition, ids: [...allSsoIds] } }
+  );
+
+  return { users: perUser.length, accounts: allSsoIds.size, perUser };
+}
+
 async function waMsgUnsubscribeInactiveBefore(cutoffDate) {
   try {
     // silent:true — DO NOT touch updated_at. The whole point of this sweep is
@@ -1482,6 +1529,7 @@ module.exports = {
   mergeLidIntoCus,
   listLidWaNumbers,
   waMsgUnsubscribeInactiveBefore,
+  ssoBulkGiftSubscribed,
   getCountSubmissionAll,
   couponsCountLatestByLocation,
   couponsCheckTakenTodayBulk,
