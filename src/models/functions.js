@@ -1176,6 +1176,9 @@ async function statsForAdmin() {
 // before broadcast and as a one-shot maintenance command.
 async function waMsgUnsubscribeInactiveBefore(cutoffDate) {
   try {
+    // silent:true — DO NOT touch updated_at. The whole point of this sweep is
+    // to act on stale activity timestamps; refreshing them here destroys the
+    // signal we're using to detect inactivity. Learned the hard way.
     const [affected] = await WAMessages.update(
       { subscribed: 0 },
       {
@@ -1183,6 +1186,7 @@ async function waMsgUnsubscribeInactiveBefore(cutoffDate) {
           subscribed: 1,
           updated_at: { [Op.lt]: cutoffDate },
         },
+        silent: true,
       }
     );
     return affected;
