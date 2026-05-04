@@ -3,7 +3,7 @@ const iconv = require("iconv-lite");
 const LOCATION_NAMES = {
   1: "Gedung SA-MWA",
   2: "Student Center",
-  3: "Auditorium FPIK",
+  3: "Pendopo FSM (FPIK)",
   4: "Auditorium Imam Bardjo",
   5: "Halaman Gedung ART Center",
 };

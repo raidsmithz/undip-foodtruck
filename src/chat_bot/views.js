@@ -4,7 +4,7 @@ const { locationName, statusName, snapshotLine } = require("./helpers");
 const SYSTEM_VERSION = "v2.26.0503";
 const PRICING = "Paket 4x Rp15.000 / 16x Rp50.000";
 const LOCATION_LIST_LINE =
-  "1. Gedung SA-MWA · 2. Student Center · 3. Audit. FPIK · 4. Audit. Imam Bardjo";
+  "1. Gedung SA-MWA · 2. Student Center · 3. Pendopo FSM (FPIK) · 4. Audit. Imam Bardjo";
 
 const welcome = (ssoCount) =>
   "Selamat datang di *Sistem UFood!* 🍱\n" +
@@ -199,7 +199,7 @@ const lokasiSnapshot = (idx, account, oldLoc, newLoc) =>
 const LOCATION_OPTIONS_BLOCK =
   "*1.* Gedung SA-MWA\n" +
   "*2.* Student Center\n" +
-  "*3.* Audit. FPIK\n" +
+  "*3.* Pendopo FSM (FPIK)\n" +
   "*4.* Audit. Imam Bardjo";
 
 const lokasiInvalid = () =>
@@ -464,7 +464,7 @@ const adminCouponRun = (r) => {
   const locNames = {
     1: "SA-MWA",
     2: "Student Center",
-    3: "Audit. FPIK",
+    3: "Pendopo FSM (FPIK)",
     4: "Audit. Imam Bardjo",
     5: "ART Center",
   };
@@ -502,7 +502,7 @@ const adminStats = (s) =>
   `*Submit aktif per lokasi:*\n` +
   `_SA-MWA:_ ${s.submitPerLocation[1]}/30 · ` +
   `_Student Center:_ ${s.submitPerLocation[2]}/30\n` +
-  `_Audit. FPIK:_ ${s.submitPerLocation[3]}/30 · ` +
+  `_Pendopo FSM:_ ${s.submitPerLocation[3]}/30 · ` +
   `_Audit. Imam Bardjo:_ ${s.submitPerLocation[4]}/30\n\n` +
   `*Free Trial digunakan:* _${s.freeTrialUsed}_ pengguna\n` +
   `*Errors 24 jam terakhir:* _${s.errorsLast24h}_ ` +

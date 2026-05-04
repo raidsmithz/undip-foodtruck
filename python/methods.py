@@ -25,7 +25,11 @@ indonesian_months = {
 ufood_locations = {
     1: "Halaman Parkir Gedung SA-MWA",
     2: "Student Center",
-    3: "Auditorium FPIK",
+    # Slot 3 was "Auditorium FPIK" — server renamed it to
+    # "Pendopo FSM (seberang pintu masuk FPIK)" sometime before May 2026.
+    # `check_form_options` does substring match self.location in option_text,
+    # so the value below MUST be present verbatim in the form HTML.
+    3: "Pendopo FSM (seberang pintu masuk FPIK)",
     4: "Auditorium Imam Bardjo, S.H.",
     5: "Halaman Gedung ART Center Undip",
 }
