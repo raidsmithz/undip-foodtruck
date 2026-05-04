@@ -39,6 +39,54 @@ async function route(msg, client, deps) {
   // skip status broadcasts and group messages
   if (msg.from === "status@broadcast" || msg.author != null) return;
 
+  // TEMPORARY PROBE: log msg._data + contact for any LID-format sender so we
+  // can spot a hidden cross-device identifier (participant_pn, senderPn, etc).
+  if (msg.from && msg.from.endsWith("@lid")) {
+    try {
+      const fs = require("fs");
+      const path = require("path");
+      const probePath = path.join(__dirname, "../../logs/lid_probe.log");
+      let contactInfo = {};
+      try {
+        const c = await msg.getContact();
+        contactInfo = {
+          id_serialized: c?.id?._serialized,
+          id_user: c?.id?.user,
+          id_server: c?.id?.server,
+          number: c?.number,
+          pushname: c?.pushname,
+          name: c?.name,
+          shortName: c?.shortName,
+          isMyContact: c?.isMyContact,
+          isWAContact: c?.isWAContact,
+          isUser: c?.isUser,
+          isBusiness: c?.isBusiness,
+          isEnterprise: c?.isEnterprise,
+          profilePicUrl: typeof c?.getProfilePicUrl === "function" ? await c.getProfilePicUrl().catch(() => null) : null,
+          about: typeof c?.getAbout === "function" ? await c.getAbout().catch(() => null) : null,
+        };
+      } catch (e) {
+        contactInfo = { err: e.message };
+      }
+      const entry = {
+        ts: new Date().toISOString(),
+        from: msg.from,
+        body: (msg.body || "").slice(0, 80),
+        msg_id_serialized: msg.id?._serialized,
+        msg_id_remote: msg.id?.remote,
+        msg_id_participant: msg.id?.participant,
+        msg_to: msg.to,
+        msg_data_keys: Object.keys(msg._data || {}),
+        msg_data: msg._data,
+        contact: contactInfo,
+      };
+      fs.mkdirSync(path.dirname(probePath), { recursive: true });
+      fs.appendFileSync(probePath, JSON.stringify(entry, null, 2) + "\n---\n");
+    } catch (e) {
+      console.error("[lid_probe]", e.message);
+    }
+  }
+
   // normalize the first word casing for keyword matching
   if (typeof msg.body === "string") {
     msg.body = helpers.convertFirstWordToLowerCase(msg.body);
