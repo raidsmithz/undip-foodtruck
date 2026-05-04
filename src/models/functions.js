@@ -1067,6 +1067,26 @@ async function statsForAdmin() {
 // Called lazily by router whenever a @lid message arrives and resolves
 // to a @c.us via WA Web's contact store. Idempotent: if no @lid row
 // exists, this is a no-op.
+// List every @lid wa_number that still exists in either table.
+async function listLidWaNumbers() {
+  const [waRows, regRows] = await Promise.all([
+    WAMessages.findAll({
+      where: { wa_number: { [Op.like]: "%@lid" } },
+      attributes: ["wa_number"],
+      raw: true,
+    }),
+    RegisteredWhatsapp.findAll({
+      where: { wa_number: { [Op.like]: "%@lid" } },
+      attributes: ["wa_number"],
+      raw: true,
+    }),
+  ]);
+  const set = new Set();
+  for (const r of waRows) set.add(r.wa_number);
+  for (const r of regRows) set.add(r.wa_number);
+  return [...set];
+}
+
 async function mergeLidIntoCus(lidId, cusId) {
   if (!lidId || !cusId || lidId === cusId) return { changed: false };
   if (!lidId.endsWith("@lid") || !cusId.endsWith("@c.us")) return { changed: false };
@@ -1332,6 +1352,7 @@ module.exports = {
   statsForAdmin,
   couponRunSummary,
   mergeLidIntoCus,
+  listLidWaNumbers,
   ssoPickBalancedLocation,
   daftarFirstAccountWithTrial,
 };

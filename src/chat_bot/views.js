@@ -458,7 +458,9 @@ const adminHelp = () =>
   "- Reply image bukti bayar dengan *_ya 0_* — aktifkan Free Trial 2x\n" +
   "- Reply image bukti bayar dengan *_ya 4_* / *_ya 16_* — tambah kuota\n" +
   "- Reply image bukti bayar dengan *_tidak_* — tolak pembayaran\n" +
-  "- Reply pesan ping dengan *_sudah_* — resolve ping handoff";
+  "- Reply pesan ping dengan *_sudah_* — resolve ping handoff\n\n" +
+  "*Maintenance:*\n" +
+  "- *_!migrate_lid_* — proactive merge semua @lid rows ke @c.us via WA Store";
 
 const adminCouponRun = (r) => {
   const locNames = {

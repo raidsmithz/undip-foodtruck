@@ -12,6 +12,8 @@ const {
   errorLogRecent,
   statsForAdmin,
   couponRunSummary,
+  listLidWaNumbers,
+  mergeLidIntoCus,
 } = require("../../models/functions");
 const { unblock } = require("../state");
 
@@ -175,6 +177,42 @@ async function handleBangCommand({ msg, client, deps }) {
   }
   if (msg.body === "!admin" || msg.body === "!help") {
     return { reply: views.adminHelp() };
+  }
+  if (msg.body === "!migrate_lid") {
+    const lidIds = await listLidWaNumbers();
+    let resolved = 0;
+    let merged = 0;
+    let unresolved = 0;
+    const failed = [];
+    for (const lidId of lidIds) {
+      try {
+        const c = await client.getContactById(lidId);
+        if (c && c.id && c.id.server === "c.us" && c.id._serialized) {
+          resolved += 1;
+          const r = await mergeLidIntoCus(lidId, c.id._serialized);
+          if (r.changed) merged += 1;
+        } else {
+          unresolved += 1;
+          failed.push(lidId);
+        }
+      } catch (e) {
+        unresolved += 1;
+        failed.push(`${lidId} (${e.message.slice(0, 40)})`);
+      }
+      // pace ourselves so we don't hammer WA Web Store
+      await new Promise((r) => setTimeout(r, 250));
+    }
+    let body =
+      `*Migrate LID*\n\n` +
+      `*Total LID rows:* _${lidIds.length}_\n` +
+      `*Resolved → c.us:* _${resolved}_\n` +
+      `*Merged:* _${merged}_\n` +
+      `*Unresolved:* _${unresolved}_`;
+    if (failed.length > 0) {
+      body += `\n\n_Unresolved IDs:_\n` + failed.slice(0, 10).join("\n");
+      if (failed.length > 10) body += `\n... +${failed.length - 10} more`;
+    }
+    return { reply: body };
   }
   if (msg.body === "!stats") {
     const stats = await statsForAdmin();
