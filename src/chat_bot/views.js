@@ -252,14 +252,12 @@ const gantiFormat = (idx) =>
 const beliQrisCaption = (idx, account, ssoCount) =>
   `*${idx}) ${account.email}*\n` +
   `*Kuota saat ini:* _${account.available_quota}x_\n\n` +
-  "Lakukan pembayaran via *QRIS Mallocation* di atas, lalu kirim " +
-  "*screenshot bukti bayar* ke chat ini.\n\n" +
+  "Bayar via *QRIS Mallocation* di atas, lalu kirim *screenshot bukti bayar* ke chat ini.\n\n" +
   "*Pilihan paket:*\n" +
-  `⌛ *4x* — Rp15.000 (kuota jadi _${account.available_quota + 4}x_)\n` +
-  `⌛ *16x* — Rp50.000 (kuota jadi _${account.available_quota + 16}x_)\n\n` +
-  "_Reminder: jika sistem gagal dapat kupon, kuota tidak dikurangi. " +
-  "Submit bisa di-enable/disable kapan saja, kuota tersimpan permanen._\n\n" +
-  `Cek ketersediaan kuota lokasi: *_ufood status_* (sistem _${ssoCount} akun_).`;
+  "- 4x — Rp15.000\n" +
+  "- 16x — Rp50.000\n\n" +
+  "_Kuota tidak dikurangi jika sistem gagal ambil kupon._\n" +
+  `Cek ketersediaan lokasi: *_ufood status_*`;
 
 const imageNoPaySelection = () =>
   "Belum memilih akun pembelian. Ketik *_ufood akun 1 beli_* (atau ganti *1* dengan nomor akun Anda) terlebih " +

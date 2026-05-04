@@ -887,10 +887,21 @@ async function getCountSubmission(submit, location) {
 }
 
 // Single-query batch version: returns {1: count, 2: count, 3: count, 4: count}.
-// Replaces 4 sequential getCountSubmission() calls when you need all locations.
+// Counts only sso_accounts whose owner (wa_number) is subscribed=1, so dormant
+// users we've auto-unsubscribed don't inflate the per-location active count.
 async function getCountSubmissionAll(submit) {
   try {
+    // Only registered WAs whose subscribed flag is on count as "active"
+    const subs = await WAMessages.findAll({
+      where: { subscribed: 1 },
+      attributes: ["wa_number"],
+      raw: true,
+    });
+    const subsSet = new Set(subs.map((s) => s.wa_number));
+    if (subsSet.size === 0) return { 1: 0, 2: 0, 3: 0, 4: 0 };
+
     const registereds = await RegisteredWhatsapp.findAll({
+      where: { wa_number: { [Op.in]: [...subsSet] } },
       attributes: ["sso_ids"],
       raw: true,
     });
