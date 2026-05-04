@@ -176,6 +176,29 @@ async function handleBangCommand({ msg, client, deps }) {
   if (msg.body === "!admin" || msg.body === "!help") {
     return { reply: views.adminHelp() };
   }
+  if (msg.body.startsWith("!resolve ")) {
+    const wid = msg.body.slice("!resolve ".length).trim();
+    try {
+      const c = await client.getContactById(wid);
+      const profilePicUrl = await c.getProfilePicUrl().catch(() => null);
+      const summary = [
+        `*resolve ${wid}*`,
+        `*id_serialized:* \`${c.id._serialized}\``,
+        `*id_server:* \`${c.id.server}\``,
+        `*id_user:* \`${c.id.user}\``,
+        `*number:* \`${c.number}\``,
+        `*pushname:* \`${c.pushname || ""}\``,
+        `*name:* \`${c.name || ""}\``,
+        `*isMyContact:* ${c.isMyContact}`,
+        `*isWAContact:* ${c.isWAContact}`,
+        `*isUser:* ${c.isUser}`,
+        `*profilePic:* ${profilePicUrl ? "yes" : "no"}`,
+      ].join("\n");
+      return { reply: summary };
+    } catch (e) {
+      return { reply: `error: ${e.message}` };
+    }
+  }
   if (msg.body === "!stats") {
     const stats = await statsForAdmin();
     return { reply: views.adminStats(stats) };
