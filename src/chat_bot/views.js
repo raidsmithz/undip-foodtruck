@@ -256,8 +256,7 @@ const beliQrisCaption = (idx, account, ssoCount) =>
   "*Pilihan paket:*\n" +
   "- 4x — Rp15.000\n" +
   "- 16x — Rp50.000\n\n" +
-  "_Kuota tidak dikurangi jika sistem gagal ambil kupon._\n" +
-  `Cek ketersediaan lokasi: *_ufood status_*`;
+  "_Kuota tidak dikurangi jika sistem gagal ambil kupon._";
 
 const imageNoPaySelection = () =>
   "Belum memilih akun pembelian. Ketik *_ufood akun 1 beli_* (atau ganti *1* dengan nomor akun Anda) terlebih " +
