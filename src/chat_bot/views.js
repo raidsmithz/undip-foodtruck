@@ -460,7 +460,8 @@ const adminHelp = () =>
   "- Reply image bukti bayar dengan *_tidak_* — tolak pembayaran\n" +
   "- Reply pesan ping dengan *_sudah_* — resolve ping handoff\n\n" +
   "*Maintenance:*\n" +
-  "- *_!migrate_lid_* — proactive merge semua @lid rows ke @c.us via WA Store";
+  "- *_!migrate_lid_* — proactive merge semua @lid rows ke @c.us via WA Store\n" +
+  "- *_!sweep_inactive_* — unsubscribe user dorman (>90 hari)";
 
 const adminCouponRun = (r) => {
   const locNames = {

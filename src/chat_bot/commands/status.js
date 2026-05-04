@@ -3,9 +3,9 @@ const {
   couponsCountTakenEntries,
   registeredTotalAccounts,
   ssoCountTotalAccounts,
-  getCountSubmission,
-  couponsCountLatestEntriesLocation,
   couponsLatestEntryDate,
+  getCountSubmissionAll,
+  couponsCountLatestByLocation,
 } = require("../../models/functions");
 
 const MAX_PER_LOCATION = 30;
@@ -17,20 +17,23 @@ module.exports = {
     return body === "ufood status" ? {} : null;
   },
   async handle() {
-    const [totalCoupons, totalUsers, totalSso, latestRunDate] = await Promise.all([
+    // 6 parallel queries instead of 4 + 12 sequential. Per-location data is
+    // collapsed into 2 batched group-by queries.
+    const [
+      totalCoupons,
+      totalUsers,
+      totalSso,
+      latestRunDate,
+      perLocation,
+      pickupToday,
+    ] = await Promise.all([
       couponsCountTakenEntries(),
       registeredTotalAccounts(),
       ssoCountTotalAccounts(),
       couponsLatestEntryDate(),
+      getCountSubmissionAll(true),
+      couponsCountLatestByLocation(),
     ]);
-    const perLocation = {};
-    const pickupToday = {};
-    for (const loc of [1, 2, 3, 4]) {
-      perLocation[loc] = await getCountSubmission(true, loc);
-      const success = await couponsCountLatestEntriesLocation(loc, [true]);
-      const total = await couponsCountLatestEntriesLocation(loc, [true, false]);
-      pickupToday[loc] = { success, total };
-    }
     return {
       reply: views.status({
         totalCoupons: HISTORICAL_OFFSET + totalCoupons,

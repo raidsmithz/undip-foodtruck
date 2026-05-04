@@ -14,7 +14,11 @@ const {
   couponRunSummary,
   listLidWaNumbers,
   mergeLidIntoCus,
+  waMsgUnsubscribeInactiveBefore,
 } = require("../../models/functions");
+
+// Users inactive for this many days get auto-unsubscribed before any blast.
+const INACTIVITY_DAYS = 90;
 const { unblock } = require("../state");
 
 const MAX_PER_LOCATION = 30;
@@ -151,6 +155,9 @@ async function handleBangCommand({ msg, client, deps }) {
   }
   if (msg.body.startsWith("!kirim ")) {
     const sendMessage = msg.body.slice("!kirim ".length);
+    // Prune dormant users first so we don't keep messaging dead inboxes
+    const cutoff = new Date(Date.now() - INACTIVITY_DAYS * 24 * 60 * 60 * 1000);
+    const pruned = await waMsgUnsubscribeInactiveBefore(cutoff);
     const numbers = await waMsgGetSubscribedNumbers();
     let sent = 0;
     for (const wa of numbers) {
@@ -163,7 +170,21 @@ async function handleBangCommand({ msg, client, deps }) {
       }
     }
     await msg.react("👍");
-    return { reply: `Broadcast terkirim ke ${sent} nomor.` };
+    return {
+      reply:
+        `Broadcast terkirim ke ${sent} nomor.\n` +
+        (pruned > 0 ? `_(${pruned} dormant user (>${INACTIVITY_DAYS} hari) di-unsubscribe sebelum broadcast)_` : ""),
+    };
+  }
+  if (msg.body === "!sweep_inactive") {
+    const cutoff = new Date(Date.now() - INACTIVITY_DAYS * 24 * 60 * 60 * 1000);
+    const pruned = await waMsgUnsubscribeInactiveBefore(cutoff);
+    return {
+      reply:
+        `*Sweep Inactive*\n` +
+        `*Cutoff:* updated_at < ${cutoff.toISOString().slice(0, 10)}\n` +
+        `*Unsubscribed:* _${pruned} user_`,
+    };
   }
   if (msg.body === "!errors" || msg.body.startsWith("!errors ")) {
     const arg = msg.body.slice("!errors".length).trim();

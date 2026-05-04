@@ -457,12 +457,10 @@ async function ssoGetAccount(account_id) {
   try {
     const account = await SSOAccounts.findByPk(account_id);
     if (account) {
-      console.log(`Account ${account_id}: ${account}`);
       account.email = decrypt(account.email);
       account.password = decrypt(account.password);
       return account;
     }
-    console.log(`Account ${account_id} not found.`);
   } catch (error) {
     console.error(error);
   }
@@ -887,6 +885,110 @@ async function getCountSubmission(submit, location) {
   }
 }
 
+// Single-query batch version: returns {1: count, 2: count, 3: count, 4: count}.
+// Replaces 4 sequential getCountSubmission() calls when you need all locations.
+async function getCountSubmissionAll(submit) {
+  try {
+    const registereds = await RegisteredWhatsapp.findAll({
+      attributes: ["sso_ids"],
+      raw: true,
+    });
+    const ssoIdsArray = [];
+    for (const r of registereds) {
+      if (!r.sso_ids) continue;
+      for (const s of r.sso_ids.split(",")) {
+        const n = parseInt(s.trim(), 10);
+        if (!isNaN(n)) ssoIdsArray.push(n);
+      }
+    }
+    const uniqueSSOIds = [...new Set(ssoIdsArray)];
+    const out = { 1: 0, 2: 0, 3: 0, 4: 0 };
+    if (uniqueSSOIds.length === 0) return out;
+    const rows = await SSOAccounts.findAll({
+      attributes: [
+        "pick_location",
+        [sequelize.fn("COUNT", sequelize.col("id")), "n"],
+      ],
+      where: {
+        id: { [Op.in]: uniqueSSOIds },
+        pick_location: { [Op.in]: [1, 2, 3, 4] },
+        enable_submit: submit ? 1 : 0,
+      },
+      group: ["pick_location"],
+      raw: true,
+    });
+    for (const r of rows) {
+      out[r.pick_location] = parseInt(r.n, 10);
+    }
+    return out;
+  } catch (error) {
+    console.error("[getCountSubmissionAll]", error.message);
+    return { 1: 0, 2: 0, 3: 0, 4: 0 };
+  }
+}
+
+async function couponsCountLatestByLocation() {
+  try {
+    const latest = await TakenCoupons.findOne({
+      order: [["created_at", "DESC"]],
+      attributes: ["created_at"],
+      raw: true,
+    });
+    const out = {
+      1: { success: 0, total: 0 },
+      2: { success: 0, total: 0 },
+      3: { success: 0, total: 0 },
+      4: { success: 0, total: 0 },
+    };
+    if (!latest) return out;
+    const day = new Date(latest.created_at);
+    day.setHours(0, 0, 0, 0);
+    const next = new Date(day);
+    next.setDate(next.getDate() + 1);
+    const rows = await TakenCoupons.findAll({
+      where: { created_at: { [Op.gte]: day, [Op.lt]: next } },
+      attributes: ["pick_location", "taken_success"],
+      raw: true,
+    });
+    for (const r of rows) {
+      const loc = r.pick_location;
+      if (!out[loc]) out[loc] = { success: 0, total: 0 };
+      out[loc].total += 1;
+      if (r.taken_success) out[loc].success += 1;
+    }
+    return out;
+  } catch (error) {
+    console.error("[couponsCountLatestByLocation]", error.message);
+    return {
+      1: { success: 0, total: 0 },
+      2: { success: 0, total: 0 },
+      3: { success: 0, total: 0 },
+      4: { success: 0, total: 0 },
+    };
+  }
+}
+
+async function couponsCheckTakenTodayBulk(ssoIds) {
+  if (!ssoIds || ssoIds.length === 0) return new Set();
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const rows = await TakenCoupons.findAll({
+      where: {
+        sso_id: { [Op.in]: ssoIds },
+        taken_success: true,
+        created_at: { [Op.gte]: today },
+      },
+      attributes: ["sso_id"],
+      raw: true,
+    });
+    return new Set(rows.map((r) => r.sso_id));
+  } catch (error) {
+    console.error("[couponsCheckTakenTodayBulk]", error.message);
+    return new Set();
+  }
+}
+
 // ───────────────────────────────────────────────────────────────────────────
 // Refactor additions: subscribed flag, pending_action FSM, blocked auto-expire,
 // error log, balanced-location picker, atomic register-with-trial.
@@ -1068,6 +1170,27 @@ async function statsForAdmin() {
 // to a @c.us via WA Web's contact store. Idempotent: if no @lid row
 // exists, this is a no-op.
 // List every @lid wa_number that still exists in either table.
+// Bulk-disable subscription for any user whose last activity (wa_messages
+// updated_at) is older than the cutoff date. Used to prune dormant users
+// before broadcast and as a one-shot maintenance command.
+async function waMsgUnsubscribeInactiveBefore(cutoffDate) {
+  try {
+    const [affected] = await WAMessages.update(
+      { subscribed: 0 },
+      {
+        where: {
+          subscribed: 1,
+          updated_at: { [Op.lt]: cutoffDate },
+        },
+      }
+    );
+    return affected;
+  } catch (e) {
+    console.error("[waMsgUnsubscribeInactiveBefore]", e.message);
+    return 0;
+  }
+}
+
 async function listLidWaNumbers() {
   const [waRows, regRows] = await Promise.all([
     WAMessages.findAll({
@@ -1353,6 +1476,10 @@ module.exports = {
   couponRunSummary,
   mergeLidIntoCus,
   listLidWaNumbers,
+  waMsgUnsubscribeInactiveBefore,
+  getCountSubmissionAll,
+  couponsCountLatestByLocation,
+  couponsCheckTakenTodayBulk,
   ssoPickBalancedLocation,
   daftarFirstAccountWithTrial,
 };

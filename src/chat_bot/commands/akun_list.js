@@ -8,7 +8,7 @@ const {
   registeredGetSSOIDS,
   ssoGetAccount,
   couponsGetAllEntriesToday,
-  couponsCheckTakenToday,
+  couponsCheckTakenTodayBulk,
 } = require("../../models/functions");
 
 module.exports = {
@@ -32,7 +32,11 @@ module.exports = {
       return { reply: views.akunDetail(params.n, account) };
     }
 
-    const todayCoupons = await couponsGetAllEntriesToday();
+    // Parallelize: today-coupons probe + every account fetch run together
+    const [todayCoupons, ...accounts] = await Promise.all([
+      couponsGetAllEntriesToday(),
+      ...sso_ids.map((id) => ssoGetAccount(id)),
+    ]);
     const anyTakenToday = todayCoupons.length > 0;
     const weekday = isWeekday();
     let waitingLabel = "Menunggu";
@@ -43,15 +47,20 @@ module.exports = {
       else waitingLabel = "Menunggu";
     }
 
+    // Batch the per-account "did I take a coupon today?" check into one query
+    let takenSet = new Set();
+    if (weekday && anyTakenToday) {
+      takenSet = await couponsCheckTakenTodayBulk(accounts.filter((a) => a).map((a) => a.id));
+    }
+
     const items = [];
-    for (let i = 0; i < sso_ids.length; i++) {
-      const account = await ssoGetAccount(sso_ids[i]);
+    for (let i = 0; i < accounts.length; i++) {
+      const account = accounts[i];
+      if (!account) continue;
       let label;
       if (!weekday) label = "Di Luar Jadwal";
-      else if (anyTakenToday) {
-        const dapat = await couponsCheckTakenToday(account.id);
-        label = dapat ? "Dapat" : "Tidak Dapat";
-      } else label = waitingLabel;
+      else if (anyTakenToday) label = takenSet.has(account.id) ? "Dapat" : "Tidak Dapat";
+      else label = waitingLabel;
       items.push(views.akunListItem(i + 1, account, label));
     }
     return {
