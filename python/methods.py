@@ -375,9 +375,6 @@ class BotUndipFoodTruck:
                     f"Aborting submit_form after {self.attempts_submit_form - 1} attempts.",
                 )
                 return
-            if recaptcha_code == None:
-                if len(g_recaptcha_response_value) > 0:
-                    recaptcha_code = g_recaptcha_response_value.pop(0)
 
             while not self.is_before_10_am():
                 time.sleep(1)
@@ -391,11 +388,83 @@ class BotUndipFoodTruck:
 
             attempts_failed_submit = 0
             self.send_at = datetime.datetime.now(datetime.timezone.utc)
+            # Form now uses TWO captchas: Cloudflare Turnstile (widget) AND a
+            # CodeIgniter image captcha solved via /ajax_/validate_captcha.
+            # Server stores the image-captcha success in session, then the
+            # final POST /save accepts the Turnstile token.
+            # Use a session so cookies (form_app_session) carry across calls.
+            post_headers = {
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/131.0.0.0 Safari/537.36"
+                ),
+                "Referer": url,
+                "Origin": "https://form.undip.ac.id",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept-Language": "id-ID,id;q=0.9,en;q=0.8",
+            }
+            sess = requests.Session()
+            sess.cookies.set("form_app_session", self.form_app_session, domain="form.undip.ac.id")
+
+            # Step A: solve + validate the image captcha. Only after this
+            # succeeds do we consume a Turnstile token from the shared pool —
+            # otherwise we'd waste tokens on attempts that never reach /save.
+            nama = self.form_data["nama"]
+            try:
+                from solver_v2 import solve_image_captcha as _solve_img
+                ts = int(time.time() * 1000)
+                img_resp = sess.get(
+                    url + f"/captcha_image?t={ts}",
+                    headers={**post_headers, "Accept": "image/avif,image/webp,*/*"},
+                    timeout=15,
+                )
+                captcha_text = _solve_img(img_resp.content)
+                if not captcha_text:
+                    print(f"[{nama}] image captcha solver returned nothing")
+                    self.attempts_submit_form += 1
+                    self.submit_form(g_recaptcha_response_value)
+                    return
+                rv = sess.post(
+                    url + "/ajax_/validate_captcha",
+                    data={"captcha_input": captcha_text, "ci_csrf_token": ""},
+                    headers={
+                        **post_headers,
+                        "X-Requested-With": "XMLHttpRequest",
+                        "Accept": "application/json, text/javascript, */*; q=0.01",
+                    },
+                    timeout=15,
+                )
+                jv = rv.json() if rv.headers.get("Content-Type", "").startswith("application/json") else {}
+                if jv.get("status") != "ok":
+                    print(f"[{nama}] image captcha rejected, retrying. attempts={self.attempts_submit_form}")
+                    self.attempts_submit_form += 1
+                    self.submit_form(g_recaptcha_response_value)
+                    return
+            except Exception as e:
+                print(f"[{nama}] captcha pre-step exception: {type(e).__name__}: {e}")
+                self.attempts_submit_form += 1
+                self.submit_form(g_recaptcha_response_value)
+                return
+
+            # Now consume a Turnstile token (image captcha is validated)
+            if recaptcha_code is None:
+                if len(g_recaptcha_response_value) > 0:
+                    recaptcha_code = g_recaptcha_response_value.pop(0)
+                else:
+                    print(f"[{nama}] no Turnstile codes left after image captcha valid")
+                    return
+
+            # Step B: POST /save with Turnstile token
             while 1:
                 try:
                     self.form_data["cf-turnstile-response"] = recaptcha_code
-                    response = requests.post(
-                        url + "/save", cookies=self.cookies, data=self.form_data
+                    multipart = {k: (None, str(v)) for k, v in self.form_data.items()}
+                    response = sess.post(
+                        url + "/save",
+                        files=multipart,
+                        headers=post_headers,
+                        timeout=30,
                     )
                     submitted_time = datetime.datetime.now().strftime("**%H:%M:%S**")
                     self.has_sent_at = datetime.datetime.now(datetime.timezone.utc)
@@ -431,7 +500,11 @@ class BotUndipFoodTruck:
                     submitted_time,
                     "You've gotten the ticket.",
                 )
-            elif "Lengkapi captcha dengan baik." in response.content.decode("utf-8"):
+            elif (
+                "Lengkapi captcha dengan baik." in response.content.decode("utf-8")
+                or "Captcha belum divalidasi" in response.content.decode("utf-8")
+                or "captcha belum divalidasi" in response.content.decode("utf-8")
+            ):
                 if len(g_recaptcha_response_value) > 0:
                     print(
                         "[" + self.form_data["nama"] + "]",
@@ -457,6 +530,8 @@ class BotUndipFoodTruck:
                 )
             elif (
                 "Gagal! Pendaftaran hanya dapat dilakukan mulai pukul"
+                in response.content.decode("utf-8")
+                or "Pendaftaran hanya dapat dilakukan tiap hari mulai pukul"
                 in response.content.decode("utf-8")
             ):
                 print(

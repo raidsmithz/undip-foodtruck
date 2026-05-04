@@ -29,6 +29,16 @@ MAX_CREATE_RETRIES = 3
 _session = requests.Session()
 
 
+# Match the User-Agent we use when posting the form. Cloudflare Turnstile
+# tokens are bound to the UA that solved them — sending a different UA at
+# submit time yields "Captcha belum divalidasi" server-side.
+SUBMIT_USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/131.0.0.0 Safari/537.36"
+)
+
+
 def _create_task() -> Optional[str]:
     payload = {
         "clientKey": CAPSOLVER_API_KEY,
@@ -36,6 +46,8 @@ def _create_task() -> Optional[str]:
             "type": "AntiTurnstileTaskProxyLess",
             "websiteKey": TURNSTILE_SITE_KEY,
             "websiteURL": TURNSTILE_SITE_URL,
+            "userAgent": SUBMIT_USER_AGENT,
+            "metadata": {"action": ""},
         },
     }
     for attempt in range(1, MAX_CREATE_RETRIES + 1):
@@ -112,3 +124,56 @@ def solve_captcha(arr_codes: List[str]) -> Optional[str]:
     if token:
         arr_codes.append(token)
     return token
+
+
+def solve_image_captcha(image_bytes: bytes) -> Optional[str]:
+    """Solve a CodeIgniter-style image captcha via CapSolver ImageToTextTask.
+
+    The form on form.undip.ac.id added an image-captcha modal in addition to
+    Turnstile. This solver handles that step.
+    """
+    import base64
+    if not CAPSOLVER_API_KEY:
+        return None
+    payload = {
+        "clientKey": CAPSOLVER_API_KEY,
+        "task": {
+            "type": "ImageToTextTask",
+            "body": base64.b64encode(image_bytes).decode(),
+            "module": "common",
+        },
+    }
+    try:
+        r = _session.post(CREATE_TASK_URL, json=payload, timeout=REQUEST_TIMEOUT_S)
+        j = r.json()
+    except (requests.RequestException, ValueError) as e:
+        print(f"[SOLVER-IMG] createTask failed: {e}")
+        return None
+    if j.get("errorId"):
+        print(f"[SOLVER-IMG] createTask rejected: {j.get('errorCode')} — {j.get('errorDescription')}")
+        return None
+    # ImageToTextTask often returns ready inline
+    if j.get("status") == "ready":
+        return (j.get("solution") or {}).get("text")
+    task_id = j.get("taskId")
+    if not task_id:
+        return None
+    return _poll_for_text(task_id)
+
+
+def _poll_for_text(task_id: str) -> Optional[str]:
+    deadline = time.monotonic() + CAPSOLVER_TIMEOUT_S
+    payload = {"clientKey": CAPSOLVER_API_KEY, "taskId": task_id}
+    while time.monotonic() < deadline:
+        try:
+            r = _session.post(GET_RESULT_URL, json=payload, timeout=REQUEST_TIMEOUT_S)
+            d = r.json()
+        except (requests.RequestException, ValueError):
+            time.sleep(CAPSOLVER_POLL_INTERVAL_S)
+            continue
+        if d.get("status") == "ready":
+            return (d.get("solution") or {}).get("text")
+        if d.get("status") == "failed" or d.get("errorId"):
+            return None
+        time.sleep(CAPSOLVER_POLL_INTERVAL_S)
+    return None
