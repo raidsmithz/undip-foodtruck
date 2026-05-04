@@ -228,9 +228,17 @@ class BotUndipFoodTruck:
         response_content = response.content.decode("utf-8")
         self.content_soup = BeautifulSoup(response_content, "html.parser")
         name = self.content_soup.find("input", {"name": "nama"})
-        # if "Hanya untuk mahasiswa." in response_content:
-        #     self.graduated = True
-        if "data anda = <b>Lulus studi" in response_content:
+        # SSO Undip rejects non-active students with various status strings.
+        # Treat all of them as graduated so Node stops retrying puppeteer login.
+        ineligible_markers = [
+            "data anda = <b>Lulus studi",
+            "data anda = <b>Undur Diri",
+            "data anda = <b>Cuti",
+            "data anda = <b>Drop Out",
+            "data anda = <b>Mengundurkan Diri",
+            "tidak memenuhi syarat untuk pengambilan",
+        ]
+        if any(m in response_content for m in ineligible_markers):
             self.graduated = True
         if name == None:
             # with open("test.txt", "w") as file:
