@@ -8,6 +8,7 @@ const {
   waMsgAddAccount,
   ssoCountTotalAccounts,
   errorLogAdd,
+  mergeLidIntoCus,
 } = require("../models/functions");
 
 async function persistAudit(wa_number, body) {
@@ -35,57 +36,35 @@ async function applyResult(client, msg, result) {
   }
 }
 
+// Resolve a @lid sender to its canonical @c.us identifier.
+// whatsapp-web.js's Contact.id._serialized maps LID -> c.us via WA Web's
+// internal Store, even for users that aren't in the bot's contact list.
+// Falls back to msg.from if resolution fails so we never lose a message.
+async function resolveCanonicalFrom(msg) {
+  if (!msg.from || !msg.from.endsWith("@lid")) return msg.from;
+  try {
+    const c = await msg.getContact();
+    if (c && c.id && c.id.server === "c.us" && c.id._serialized) {
+      const cusId = c.id._serialized;
+      // Lazy-merge any old @lid row into the @c.us canonical row so users
+      // who registered via WA Web before this fix don't lose their data.
+      await mergeLidIntoCus(msg.from, cusId);
+      return cusId;
+    }
+  } catch (e) {
+    console.error("[lid_resolve]", e.message);
+  }
+  return msg.from;
+}
+
 async function route(msg, client, deps) {
   // skip status broadcasts and group messages
   if (msg.from === "status@broadcast" || msg.author != null) return;
 
-  // TEMPORARY PROBE: log msg._data + contact for any LID-format sender so we
-  // can spot a hidden cross-device identifier (participant_pn, senderPn, etc).
-  if (msg.from && msg.from.endsWith("@lid")) {
-    try {
-      const fs = require("fs");
-      const path = require("path");
-      const probePath = path.join(__dirname, "../../logs/lid_probe.log");
-      let contactInfo = {};
-      try {
-        const c = await msg.getContact();
-        contactInfo = {
-          id_serialized: c?.id?._serialized,
-          id_user: c?.id?.user,
-          id_server: c?.id?.server,
-          number: c?.number,
-          pushname: c?.pushname,
-          name: c?.name,
-          shortName: c?.shortName,
-          isMyContact: c?.isMyContact,
-          isWAContact: c?.isWAContact,
-          isUser: c?.isUser,
-          isBusiness: c?.isBusiness,
-          isEnterprise: c?.isEnterprise,
-          profilePicUrl: typeof c?.getProfilePicUrl === "function" ? await c.getProfilePicUrl().catch(() => null) : null,
-          about: typeof c?.getAbout === "function" ? await c.getAbout().catch(() => null) : null,
-        };
-      } catch (e) {
-        contactInfo = { err: e.message };
-      }
-      const entry = {
-        ts: new Date().toISOString(),
-        from: msg.from,
-        body: (msg.body || "").slice(0, 80),
-        msg_id_serialized: msg.id?._serialized,
-        msg_id_remote: msg.id?.remote,
-        msg_id_participant: msg.id?.participant,
-        msg_to: msg.to,
-        msg_data_keys: Object.keys(msg._data || {}),
-        msg_data: msg._data,
-        contact: contactInfo,
-      };
-      fs.mkdirSync(path.dirname(probePath), { recursive: true });
-      fs.appendFileSync(probePath, JSON.stringify(entry, null, 2) + "\n---\n");
-    } catch (e) {
-      console.error("[lid_probe]", e.message);
-    }
-  }
+  // Normalize @lid -> @c.us so the same human across mobile + linked devices
+  // hits the same DB row. msg.reply still works after rewriting msg.from
+  // because whatsapp-web.js dispatches replies through the original chat ref.
+  msg.from = await resolveCanonicalFrom(msg);
 
   // normalize the first word casing for keyword matching
   if (typeof msg.body === "string") {

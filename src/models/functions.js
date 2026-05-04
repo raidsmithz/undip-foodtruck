@@ -1063,6 +1063,63 @@ async function statsForAdmin() {
   };
 }
 
+// One-shot merge of a @lid wa_number into its @c.us canonical form.
+// Called lazily by router whenever a @lid message arrives and resolves
+// to a @c.us via WA Web's contact store. Idempotent: if no @lid row
+// exists, this is a no-op.
+async function mergeLidIntoCus(lidId, cusId) {
+  if (!lidId || !cusId || lidId === cusId) return { changed: false };
+  if (!lidId.endsWith("@lid") || !cusId.endsWith("@c.us")) return { changed: false };
+
+  let changed = false;
+  try {
+    // 1. Migrate registereds (sso_ids tied to wa_number)
+    const lidReg = await RegisteredWhatsapp.findOne({ where: { wa_number: lidId } });
+    if (lidReg) {
+      const cusReg = await RegisteredWhatsapp.findOne({ where: { wa_number: cusId } });
+      if (!cusReg) {
+        await lidReg.update({ wa_number: cusId });
+      } else {
+        // Combine sso_ids (comma-separated strings, dedupe ints)
+        const merge = (s) =>
+          (s || "")
+            .split(",")
+            .map((x) => parseInt(x.trim(), 10))
+            .filter((n) => !isNaN(n));
+        const combined = [...new Set([...merge(cusReg.sso_ids), ...merge(lidReg.sso_ids)])];
+        await cusReg.update({
+          sso_ids: combined.join(", "),
+          pay_sso_id: cusReg.pay_sso_id || lidReg.pay_sso_id || 0,
+        });
+        await lidReg.destroy();
+      }
+      changed = true;
+    }
+
+    // 2. Migrate wa_messages (per-user state)
+    const lidWa = await WAMessages.findOne({ where: { wa_number: lidId } });
+    if (lidWa) {
+      const cusWa = await WAMessages.findOne({ where: { wa_number: cusId } });
+      if (!cusWa) {
+        await lidWa.update({ wa_number: cusId });
+      } else {
+        // Take logical OR for boolean-ish fields, prefer existing c.us state
+        await cusWa.update({
+          subscribed: cusWa.subscribed || lidWa.subscribed,
+          free_trial: cusWa.free_trial || lidWa.free_trial,
+          // pending_action: keep c.us's (more recent state typically)
+          // last_messages: keep c.us's
+        });
+        await lidWa.destroy();
+      }
+      changed = true;
+    }
+  } catch (e) {
+    console.error("[mergeLidIntoCus]", e.message);
+  }
+  return { changed };
+}
+
 async function couponRunSummary(targetDate = null) {
   const day = targetDate ? new Date(targetDate) : new Date();
   day.setHours(0, 0, 0, 0);
@@ -1274,6 +1331,7 @@ module.exports = {
   errorLogRecent,
   statsForAdmin,
   couponRunSummary,
+  mergeLidIntoCus,
   ssoPickBalancedLocation,
   daftarFirstAccountWithTrial,
 };
