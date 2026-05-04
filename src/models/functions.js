@@ -1,5 +1,6 @@
 // functions.js
 const { Op } = require("sequelize");
+const sequelize = require("../config/database");
 const { encrypt, decrypt } = require("../utils/encryption");
 
 const {
