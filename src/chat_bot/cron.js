@@ -133,12 +133,20 @@ async function sweepStaleBlocks() {
   }
 }
 
+// All cron rules below are interpreted in WIB. Pass tz explicitly so the
+// schedule is correct even if the host process forgets to set TZ env.
+const TZ = "Asia/Jakarta";
+
 function start(client) {
   for (const t of COUPON_TIMES)
-    schedule.scheduleJob(t, () => sendCoupons(client));
-  schedule.scheduleJob(RELOGIN_SCHEDULE, () => doLoginAccounts(client));
-  schedule.scheduleJob(REMINDER_SCHEDULE, () => reminderActivationSubmission(client));
-  schedule.scheduleJob(BLOCKED_SWEEP_SCHEDULE, sweepStaleBlocks);
+    schedule.scheduleJob({ rule: t, tz: TZ }, () => sendCoupons(client));
+  schedule.scheduleJob({ rule: RELOGIN_SCHEDULE, tz: TZ }, () =>
+    doLoginAccounts(client)
+  );
+  schedule.scheduleJob({ rule: REMINDER_SCHEDULE, tz: TZ }, () =>
+    reminderActivationSubmission(client)
+  );
+  schedule.scheduleJob({ rule: BLOCKED_SWEEP_SCHEDULE, tz: TZ }, sweepStaleBlocks);
 }
 
 module.exports = {
