@@ -241,8 +241,8 @@ const submitFormat = (idx, account) =>
 
 const gantiSnapshot = (idx, account, oldEmail, newEmail) =>
   `✅ *Akun ${idx}*\n` +
-  snapshotLine("Email", oldEmail, newEmail) +
-  "\n*Password:* _***_ → _***_   _(akan login ulang otomatis)_\n" +
+  `*Email:* _${newEmail}_\n` +
+  "*Password:* _(sudah diganti)_\n\n" +
   "Status login akan terupdate dalam <30 menit.";
 
 const gantiFormat = (idx) =>
