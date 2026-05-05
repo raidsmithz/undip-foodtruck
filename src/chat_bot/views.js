@@ -83,7 +83,7 @@ const daftarSuccessWithTrial = ({ index, email, location, oldQuota, newQuota, su
   (submitEnabled
     ? `Sistem mulai coba ambil kupon di *${locationName(location)}* besok jam 10:00 WIB.\n\n`
     : `Lokasi *${locationName(location)}* sedang penuh — submit otomatis tidak aktif. ` +
-      "Pilih lokasi lain via *_ufood akun N lokasi {1-4}_*.\n\n") +
+      `Pilih lokasi lain via *_ufood akun ${index} lokasi_*.\n\n`) +
   `Setelah trial habis, beli kuota: *_ufood akun ${index} beli_* (${PRICING})\n` +
   `Cek akun: *_ufood akun_*  ·  Ubah lokasi: *_ufood akun ${index} lokasi {1-4}_*\n\n` +
   "⏳ *Sistem sedang login ke akun SSO Undip Anda.* " +
@@ -281,7 +281,7 @@ const paymentSuccess = ({ email, oldQuota, newQuota, submitEnabled }) =>
 const paymentSuccessLocationFull = ({ email, newQuota }) =>
   `👍 Pembayaran dikonfirmasi.\n*Akun _${email}_* memiliki kuota _${newQuota}x_.\n` +
   "Kuota lokasi sudah penuh — submit otomatis tidak diaktifkan. " +
-  "Pilih lokasi lain via *_ufood akun N lokasi {1-4}_*.";
+  "Pilih lokasi lain via *_ufood akun 1 lokasi_* _(ganti 1 sesuai nomor akun)_.";
 
 const paymentRejected = () =>
   "❌ Pembayaran tidak dikonfirmasi. Silakan ulangi pembayaran atau " +
@@ -403,24 +403,23 @@ const couponMissed = (email) =>
   "Kuota *tidak* dikurangi.";
 
 const reLoginPasswordWrong = (email) =>
-  `Akun *_${email}_* password salah! ` +
-  "Ganti password dengan: *_ufood akun N ganti {email} {password_baru}_*";
+  `❌ *${email}* — password salah.\n` +
+  `Ganti: *_ufood akun 1 ganti {email} {password_baru}_* _(ganti 1 sesuai nomor akun)_`;
 
 const reLoginEmailWrong = (email) =>
-  `Akun *_${email}_* email salah! ` +
-  "Ganti email dengan: *_ufood akun N ganti {email_baru} {password}_*";
+  `❌ *${email}* — email salah.\n` +
+  `Ganti: *_ufood akun 1 ganti {email_baru} {password}_* _(ganti 1 sesuai nomor akun)_`;
 
 const reLoginSuccess = (email) =>
-  `Akun *_${email}_* berhasil login by sistem!`;
+  `✅ *${email}* — berhasil login.`;
 
 const reminderUnsubmitted = (email, quota) =>
-  `*Reminder*\nAkun *_${email}_* masih memiliki kuota sebanyak ${quota}x ` +
-  "dan belum mengaktifkan submit otomatis!\n" +
-  "Aktifkan dengan *_ufood akun N submit enable_*.";
+  `*Reminder*\n*${email}* masih punya _${quota}x_ kuota tapi submit belum aktif.\n` +
+  `Aktifkan: *_ufood akun 1 submit enable_* _(ganti 1 sesuai nomor akun)_`;
 
 const reminderQuotaEmpty = (email) =>
-  `*Reminder*\nAkun *_${email}_* tidak memiliki kuota. ` +
-  "Beli kuota: *_ufood akun N beli_*.";
+  `*Reminder*\n*${email}* kuota habis.\n` +
+  `Beli: *_ufood akun 1 beli_* _(ganti 1 sesuai nomor akun)_`;
 
 const adminErrors = (rows) => {
   if (!rows || rows.length === 0)
