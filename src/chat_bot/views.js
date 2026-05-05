@@ -402,24 +402,24 @@ const couponMissed = (email) =>
   `Akun *_${email}_* tidak mendapatkan kupon hari ini. ` +
   "Kuota *tidak* dikurangi.";
 
-const reLoginPasswordWrong = (email) =>
-  `❌ *${email}* — password salah.\n` +
-  `Ganti: *_ufood akun 1 ganti {email} {password_baru}_* _(ganti 1 sesuai nomor akun)_`;
+const reLoginPasswordWrong = (email, idx = 1) =>
+  `❌ *${email}* — password salah.\n\n` +
+  `Ganti: *_ufood akun ${idx} ganti {email} {password_baru}_*`;
 
-const reLoginEmailWrong = (email) =>
-  `❌ *${email}* — email salah.\n` +
-  `Ganti: *_ufood akun 1 ganti {email_baru} {password}_* _(ganti 1 sesuai nomor akun)_`;
+const reLoginEmailWrong = (email, idx = 1) =>
+  `❌ *${email}* — email salah.\n\n` +
+  `Ganti: *_ufood akun ${idx} ganti {email_baru} {password}_*`;
 
 const reLoginSuccess = (email) =>
   `✅ *${email}* — berhasil login.`;
 
-const reminderUnsubmitted = (email, quota) =>
-  `*Reminder*\n*${email}* masih punya _${quota}x_ kuota tapi submit belum aktif.\n` +
-  `Aktifkan: *_ufood akun 1 submit enable_* _(ganti 1 sesuai nomor akun)_`;
+const reminderUnsubmitted = (email, quota, idx = 1) =>
+  `*Reminder*\n*${email}* masih punya _${quota}x_ kuota tapi submit belum aktif.\n\n` +
+  `Aktifkan: *_ufood akun ${idx} submit enable_*`;
 
-const reminderQuotaEmpty = (email) =>
-  `*Reminder*\n*${email}* kuota habis.\n` +
-  `Beli: *_ufood akun 1 beli_* _(ganti 1 sesuai nomor akun)_`;
+const reminderQuotaEmpty = (email, idx = 1) =>
+  `*Reminder*\n*${email}* kuota habis.\n\n` +
+  `Beli: *_ufood akun ${idx} beli_*`;
 
 const adminErrors = (rows) => {
   if (!rows || rows.length === 0)

@@ -1402,6 +1402,21 @@ async function ssoPickBalancedLocation(maxPerLocation = 30) {
 // not a new account. Returns {kind: 'updated', sso_id, account_index} when
 // the email matches an existing one for this wa_number; falls through to
 // daftarFirstAccountWithTrial otherwise.
+// 1-based index of an sso_id within its owner's registereds.sso_ids list.
+// Returns 1 if not found so views still get a sensible default.
+async function registeredGetIndexOfSSOID(sso_id) {
+  try {
+    const wa = await registeredGetWANumberBySSOID(sso_id);
+    if (!wa) return 1;
+    const ids = await registeredGetSSOIDS(wa);
+    if (!Array.isArray(ids)) return 1;
+    const i = ids.indexOf(sso_id);
+    return i >= 0 ? i + 1 : 1;
+  } catch {
+    return 1;
+  }
+}
+
 async function daftarOrUpdateAccount(wa_number, email, password, opts = {}) {
   const { maxAccounts = 3 } = opts;
   const existingIds = (await registeredGetSSOIDS(wa_number)) || [];
@@ -1680,4 +1695,5 @@ module.exports = {
   daftarFirstAccountWithTrial,
   daftarOrUpdateAccount,
   dedupeSameEmailPerWa,
+  registeredGetIndexOfSSOID,
 };

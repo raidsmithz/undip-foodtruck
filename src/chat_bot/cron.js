@@ -6,6 +6,7 @@ const loginAccounts = require("../undip_login/login_accounts");
 const {
   ssoGetAccount,
   registeredGetWANumberBySSOID,
+  registeredGetIndexOfSSOID,
   couponsGetAllEntriesToday,
   couponsUpdateWASent,
   getCombinedSSOAccounts,
@@ -84,6 +85,7 @@ async function doLoginAccounts(client) {
     const wa = await registeredGetWANumberBySSOID(id);
     if (!wa) continue;
     let willSend = null;
+    const idx = await registeredGetIndexOfSSOID(id);
     switch (account.status_login) {
       case 1: {
         const previous = beforeMap[id];
@@ -91,10 +93,10 @@ async function doLoginAccounts(client) {
         break;
       }
       case 4:
-        willSend = views.reLoginPasswordWrong(account.email);
+        willSend = views.reLoginPasswordWrong(account.email, idx);
         break;
       case 5:
-        willSend = views.reLoginEmailWrong(account.email);
+        willSend = views.reLoginEmailWrong(account.email, idx);
         break;
     }
     if (willSend === null) continue;
@@ -115,19 +117,20 @@ async function reminderActivationSubmission(client) {
     if (!account) continue;
     const wa = await registeredGetWANumberBySSOID(acc.id);
     if (!wa) continue;
+    const idx = await registeredGetIndexOfSSOID(acc.id);
     if (acc.available_quota > 0) {
       if (sent > 0) await humanSleep();
       try {
         await client.sendMessage(
           wa,
-          views.reminderUnsubmitted(account.email, account.available_quota)
+          views.reminderUnsubmitted(account.email, account.available_quota, idx)
         );
         sent += 1;
       } catch (_) {}
     } else if (acc.reminded === 0) {
       if (sent > 0) await humanSleep();
       try {
-        await client.sendMessage(wa, views.reminderQuotaEmpty(account.email));
+        await client.sendMessage(wa, views.reminderQuotaEmpty(account.email, idx));
         await ssoEditAccountReminded(acc.id, true);
         sent += 1;
       } catch (_) {}
