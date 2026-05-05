@@ -41,6 +41,7 @@ async function sendCoupons(client) {
     const wa = await registeredGetWANumberBySSOID(coupon.sso_id);
     if (!account || !wa) continue;
     if (sent > 0) await humanSleep();
+    let delivered = false;
     if (coupon.taken_success) {
       try {
         const media = MessageMedia.fromFilePath(`./python/${coupon.coupon_file}`);
@@ -50,14 +51,24 @@ async function sendCoupons(client) {
             quota: account.available_quota,
           }),
         });
+        delivered = true;
       } catch (e) {
         console.error("[sendCoupons] media send failed", e.message);
       }
     } else {
-      await client.sendMessage(wa, views.couponMissed(account.email));
+      try {
+        await client.sendMessage(wa, views.couponMissed(account.email));
+        delivered = true;
+      } catch (e) {
+        console.error("[sendCoupons] miss notify failed", e.message);
+      }
     }
-    await couponsUpdateWASent(coupon.sso_id);
-    sent += 1;
+    // Only mark wa_sent_at when the message actually went through. Otherwise
+    // the next cron tick gets a chance to redeliver.
+    if (delivered) {
+      await couponsUpdateWASent(coupon.sso_id);
+      sent += 1;
+    }
   }
 }
 

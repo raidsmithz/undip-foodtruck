@@ -1,7 +1,6 @@
-import requests, datetime, time, os, io, sys, base64, imgkit, qrcode, pathlib, asyncio, threading
+import requests, datetime, time, os, io, sys, base64, imgkit, qrcode, pathlib, asyncio, threading, tempfile, shutil
 from bs4 import BeautifulSoup
-from syncer import sync
-from pyppeteer import launch
+from playwright.sync_api import sync_playwright
 from concurrent.futures import ThreadPoolExecutor
 
 from config import CHROMIUM_EXECUTABLE_PATH
@@ -43,127 +42,58 @@ current_time = datetime.datetime.now().time()
 
 
 def run_sync_in_thread(loop, div_id, output_image, cookie_session):
-    async def convert_html_to_image_async(div_id, output_image, cookie_session):
-        zoom_factor = 3.0  # Set your desired zoom factor
-        attempts_retry = 0
-        browser = None
-        while(True):
-            if attempts_retry >= 5:
-                print(f"{div_id}: Error cannot get coupon file.")
-                break
-            
-            try:
-                browser = await launch(
+    """Render the Undip kupon (#kupon_makanansehat_<id>) to a PNG file.
+
+    Replaced pyppeteer (broken on Python 3.12 + websockets ≥10 + snap chromium
+    permissions) with Playwright, which uses its own bundled chromium and is
+    actively maintained. The `loop` arg is kept for backward compatibility but
+    unused — Playwright sync API manages its own loop.
+    """
+    attempts_retry = 0
+    while True:
+        if attempts_retry >= 5:
+            print(f"{div_id}: Error cannot get coupon file.")
+            return
+        try:
+            with sync_playwright() as pw:
+                browser = pw.chromium.launch(
                     headless=True,
-                    args=["--no-sandbox"],
-                    executablePath=CHROMIUM_EXECUTABLE_PATH,
-                    handleSIGINT=False,
-                    handleSIGTERM=False,
-                    handleSIGHUP=False,
+                    args=["--no-sandbox", "--disable-dev-shm-usage"],
                 )
-                page = await browser.newPage()
-                await page.setViewport(
-                    {"width": 1920, "height": 1080, "deviceScaleFactor": zoom_factor}
+                context = browser.new_context(
+                    viewport={"width": 1920, "height": 1080},
+                    device_scale_factor=3.0,
                 )
-
-                await page.setCookie(
-                    {
-                        "name": "form_app_session",
-                        "value": cookie_session,
-                        "domain": "form.undip.ac.id",
-                    }
-                )
-                await page.goto(url + "/riwayat", waitUntil="networkidle2", timeout=60000)
-                await page.waitForSelector(f"#{div_id}", timeout=60000)
-                await page.waitForSelector(".qr-container", timeout=60000)
-                await page.evaluate("""() => {
-                    const el = document.querySelector('.qr-container');
-                    if (el) el.scrollIntoView({behavior: 'auto', block: 'center'});
-                }""")
-
-                await page.evaluate("""async () => {
+                context.add_cookies([{
+                    "name": "form_app_session",
+                    "value": cookie_session,
+                    "domain": "form.undip.ac.id",
+                    "path": "/",
+                }])
+                page = context.new_page()
+                page.goto(url + "/riwayat", wait_until="networkidle", timeout=60000)
+                page.wait_for_selector(f"#{div_id}", timeout=60000)
+                page.wait_for_selector(".qr-container", timeout=60000)
+                page.evaluate("""async () => {
                     const img = document.querySelector('.qr-container img');
-                    if (img) {
-                        if (!img.complete || img.naturalWidth === 0) {
-                            await new Promise(resolve => {
-                                img.onload = resolve;
-                                img.onerror = resolve;
-                            });
-                        }
+                    if (img && (!img.complete || img.naturalWidth === 0)) {
+                        await new Promise(r => { img.onload = r; img.onerror = r; });
                     }
                 }""")
-
-                await page.waitForFunction(
-                    """() => {
-                        const canvas = document.querySelector('.qr-container canvas');
-                        return canvas && canvas.width > 0 && canvas.height > 0;
-                    }""",
-                    timeout=60000
+                page.wait_for_function(
+                    "() => { const c = document.querySelector('.qr-container canvas'); return c && c.width > 0 && c.height > 0; }",
+                    timeout=60000,
                 )
-
-                scroll_data = await page.evaluate(
-                    f"""
-                        () => {{
-                            const div = document.getElementById('{div_id}');
-                            if (div) {{
-                                const beforeScrollY = window.scrollY;
-                                div.scrollIntoView();
-                                const afterScrollY = window.scrollY;
-                                return {{
-                                    beforeScrollY: beforeScrollY,
-                                    afterScrollY: afterScrollY,
-                                    pixelsScrolled: afterScrollY - beforeScrollY
-                                }};
-                            }}
-                            return null;
-                        }}
-                    """
-                )
-                div_box = await page.evaluate(
-                    f"""
-                    () => {{
-                        const div = document.getElementById('{div_id}');
-                        if (div) {{
-                            const rect = div.getBoundingClientRect();
-                            return {{
-                                x: rect.x,
-                                y: rect.y,
-                                width: rect.width,
-                                height: rect.height
-                            }};
-                        }}
-                        return null;
-                    }}
-                """
-                )
-                if div_box:
-                    await page.screenshot(
-                        {
-                            "path": output_image,
-                            "clip": {
-                                "x": div_box["x"],
-                                "y": div_box["y"] + scroll_data["afterScrollY"],
-                                "width": div_box["width"],
-                                "height": div_box["height"],
-                            },
-                        }
-                    )
-                if browser:
-                    await browser.close()
-                break
-
-            except Exception as e:
-                if browser:
-                    await browser.close()
-                print(e)
-                attempts_retry += 1
-                continue
-
-    async def run_async_in_thread(div_id, output_image, cookie_session):
-        asyncio.set_event_loop(loop)
-        await convert_html_to_image_async(div_id, output_image, cookie_session)
-
-    asyncio.run(run_async_in_thread(div_id, output_image, cookie_session))
+                elem = page.query_selector(f"#{div_id}")
+                if elem:
+                    elem.scroll_into_view_if_needed()
+                    elem.screenshot(path=output_image)
+                browser.close()
+            return
+        except Exception as e:
+            print(f"{div_id} attempt {attempts_retry + 1} failed: {e}")
+            attempts_retry += 1
+            continue
 
 
 class BotUndipFoodTruck:
