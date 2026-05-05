@@ -67,8 +67,8 @@ const daftarBadEmail = () =>
   "Contoh: *_ufood daftar admin@students.undip.ac.id rahasia123_*";
 
 const daftarMaxAccounts = (max) =>
-  `Maksimal pendaftaran hanya ${max} akun per nomor WhatsApp.\n` +
-  "Hapus salah satu akun (contoh: *_ufood akun 1 hapus_*) sebelum daftar akun baru.";
+  `Maksimal pendaftaran hanya ${max} akun per nomor WhatsApp.\n\n` +
+  "Hapus salah satu akun: *_ufood akun 1 hapus_* _(ganti 1 sesuai nomor akun)_";
 
 const daftarSuccessWithTrial = ({ index, email, location, oldQuota, newQuota, submitEnabled }) =>
   `✅ *Akun ${index} terdaftar + Free Trial aktif!* 🎁\n\n` +
@@ -225,11 +225,11 @@ const submitSnapshot = (idx, account, oldVal, newVal) =>
   );
 
 const submitNoQuota = (idx) =>
-  "Kuota pengambilan akun ini sudah habis. Beli kuota dulu: " +
-  `*_ufood akun ${idx || 1} beli_*.`;
+  "Kuota pengambilan akun ini sudah habis.\n\n" +
+  `Beli kuota: *_ufood akun ${idx || 1} beli_*`;
 
 const submitLocationFull = (idx) =>
-  "⚠️ Lokasi akun ini sudah penuh (30/30). Submit tidak diaktifkan.\n" +
+  "⚠️ Lokasi akun ini sudah penuh (30/30). Submit tidak diaktifkan.\n\n" +
   `Pilih lokasi lain via *_ufood akun ${idx || 1} lokasi_* — cek ` +
   "ketersediaan dengan *_ufood status_*.";
 
@@ -259,8 +259,9 @@ const beliQrisCaption = (idx, account, ssoCount) =>
   "_Kuota tidak dikurangi jika sistem gagal ambil kupon._";
 
 const imageNoPaySelection = () =>
-  "Belum memilih akun pembelian. Ketik *_ufood akun 1 beli_* (atau ganti *1* dengan nomor akun Anda) terlebih " +
-  "dahulu untuk dapat QRIS, lalu kirim ulang bukti bayar.";
+  "Belum memilih akun pembelian.\n\n" +
+  "Ketik *_ufood akun 1 beli_* _(ganti 1 sesuai nomor akun)_ untuk dapat QRIS, " +
+  "lalu kirim ulang bukti bayar.";
 
 const imageNoAccounts = () =>
   "Belum punya akun terdaftar. Daftar dulu:\n" +
@@ -279,9 +280,9 @@ const paymentSuccess = ({ email, oldQuota, newQuota, submitEnabled }) =>
   "\n\nCek akun: *_ufood akun_*";
 
 const paymentSuccessLocationFull = ({ email, newQuota }) =>
-  `👍 Pembayaran dikonfirmasi.\n*Akun _${email}_* memiliki kuota _${newQuota}x_.\n` +
-  "Kuota lokasi sudah penuh — submit otomatis tidak diaktifkan. " +
-  "Pilih lokasi lain via *_ufood akun 1 lokasi_* _(ganti 1 sesuai nomor akun)_.";
+  `👍 Pembayaran dikonfirmasi.\n*Akun _${email}_* memiliki kuota _${newQuota}x_.\n\n` +
+  "Kuota lokasi sudah penuh — submit otomatis tidak diaktifkan.\n\n" +
+  "Pilih lokasi lain: *_ufood akun 1 lokasi_* _(ganti 1 sesuai nomor akun)_";
 
 const paymentRejected = () =>
   "❌ Pembayaran tidak dikonfirmasi. Silakan ulangi pembayaran atau " +
