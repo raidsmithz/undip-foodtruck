@@ -16,6 +16,7 @@ const {
   mergeLidIntoCus,
   waMsgUnsubscribeInactiveBefore,
   ssoBulkGiftSubscribed,
+  dedupeSameEmailPerWa,
 } = require("../../models/functions");
 
 // Users inactive for this many days get auto-unsubscribed before any blast.
@@ -207,6 +208,21 @@ async function handleBangCommand({ msg, client, deps }) {
         `*Akun SSO:* _${result.accounts}_\n` +
         `_(notif WA dikirim ke tiap user dengan jitter — selesai dalam ~${Math.round((result.users * 1.05) / 60)} menit)_`,
     };
+  }
+  if (msg.body === "!dedupe") {
+    const r = await dedupeSameEmailPerWa();
+    let body =
+      `*Dedupe Same-Email-Same-WA*\n\n` +
+      `*Groups merged:* _${r.groups}_\n` +
+      `*Rows deleted:* _${r.mergedRows}_`;
+    if (r.detail.length > 0) {
+      body += "\n\n_Detail:_\n";
+      for (const d of r.detail.slice(0, 10)) {
+        body += `• ${d.email}: kept #${d.kept}, dropped #${d.dropped.join(", ")}\n`;
+      }
+      if (r.detail.length > 10) body += `... +${r.detail.length - 10} more\n`;
+    }
+    return { reply: body };
   }
   if (msg.body === "!sweep_inactive") {
     const cutoff = new Date(Date.now() - INACTIVITY_DAYS * 24 * 60 * 60 * 1000);

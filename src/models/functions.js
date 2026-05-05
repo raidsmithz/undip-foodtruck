@@ -1398,6 +1398,138 @@ async function ssoPickBalancedLocation(maxPerLocation = 30) {
   return leastLoaded[Math.floor(Math.random() * leastLoaded.length)].loc;
 }
 
+// Same-email-same-WA repeat registration is treated as a password update,
+// not a new account. Returns {kind: 'updated', sso_id, account_index} when
+// the email matches an existing one for this wa_number; falls through to
+// daftarFirstAccountWithTrial otherwise.
+async function daftarOrUpdateAccount(wa_number, email, password, opts = {}) {
+  const { maxAccounts = 3 } = opts;
+  const existingIds = (await registeredGetSSOIDS(wa_number)) || [];
+  for (let i = 0; i < existingIds.length; i++) {
+    const acc = await ssoGetAccount(existingIds[i]);
+    if (acc && acc.email === email) {
+      await ssoEditAccountByID(existingIds[i], {
+        email,
+        password,
+        login_cookie: "",
+        status_login: 0,
+      });
+      return {
+        ok: true,
+        kind: "updated",
+        sso_id: existingIds[i],
+        account_index: i + 1,
+      };
+    }
+  }
+  if (existingIds.length >= maxAccounts) {
+    return { ok: false, kind: "max_reached" };
+  }
+  const r = await daftarFirstAccountWithTrial(wa_number, email, password, opts);
+  return { ...r, kind: r.ok ? "registered" : "failed" };
+}
+
+// Audit + merge duplicate (same email under same WA) sso_accounts.
+// Picks the row with the most leftover quota (ties → lowest id) as canonical
+// and absorbs the others. Quota is summed, free_trial OR'd. Other rows are
+// deleted; the registereds.sso_ids list is rewritten without the duplicates;
+// pay_sso_id is repointed to the canonical id when needed.
+async function dedupeSameEmailPerWa() {
+  const regs = await RegisteredWhatsapp.findAll();
+  let groups = 0;
+  let mergedRows = 0;
+  const detail = [];
+  for (const reg of regs) {
+    if (!reg.sso_ids) continue;
+    const ids = reg.sso_ids
+      .split(",")
+      .map((s) => parseInt(s.trim(), 10))
+      .filter((n) => !isNaN(n));
+    if (ids.length < 2) continue;
+
+    // Decrypt emails per id
+    const idToAccount = {};
+    for (const id of ids) {
+      const acc = await ssoGetAccount(id);
+      if (acc) idToAccount[id] = acc;
+    }
+    const byEmail = {};
+    for (const id of ids) {
+      const acc = idToAccount[id];
+      if (!acc) continue;
+      const k = acc.email;
+      (byEmail[k] = byEmail[k] || []).push(id);
+    }
+    let changed = false;
+    const newIds = [];
+    const seen = new Set();
+    for (const id of ids) {
+      const acc = idToAccount[id];
+      if (!acc) {
+        // unknown account; keep id as-is so we don't accidentally drop refs
+        if (!seen.has(id)) { newIds.push(id); seen.add(id); }
+        continue;
+      }
+      const dupGroup = byEmail[acc.email];
+      if (dupGroup.length === 1) {
+        if (!seen.has(id)) { newIds.push(id); seen.add(id); }
+        continue;
+      }
+      // Pick canonical id: max available_quota, tie-break by lowest id
+      const canonical = dupGroup
+        .map((x) => idToAccount[x])
+        .filter(Boolean)
+        .sort((a, b) => (b.available_quota - a.available_quota) || (a.id - b.id))[0];
+      if (seen.has(canonical.id)) continue;
+      // Sum quota across the group, OR the submit/cookie state
+      let totalQuota = 0;
+      let bestEnableSubmit = 0;
+      let bestStatusLogin = canonical.status_login;
+      let bestCookie = canonical.login_cookie;
+      let bestLocation = canonical.pick_location;
+      for (const ix of dupGroup) {
+        const a = idToAccount[ix];
+        if (!a) continue;
+        totalQuota += a.available_quota || 0;
+        if (a.enable_submit) bestEnableSubmit = 1;
+        if (a.status_login === 1) {
+          bestStatusLogin = 1;
+          bestCookie = a.login_cookie;
+          bestLocation = a.pick_location;
+        }
+      }
+      await ssoEditAccountByID(canonical.id, {
+        available_quota: totalQuota,
+        enable_submit: bestEnableSubmit,
+        status_login: bestStatusLogin,
+        login_cookie: bestCookie || "",
+        pick_location: bestLocation,
+      });
+      // Delete the other duplicates
+      for (const ix of dupGroup) {
+        if (ix === canonical.id) continue;
+        try {
+          await SSOAccounts.destroy({ where: { id: ix } });
+          mergedRows += 1;
+        } catch (_) {}
+      }
+      // Repoint pay_sso_id if it pointed to a removed dup
+      if (dupGroup.includes(reg.pay_sso_id) && reg.pay_sso_id !== canonical.id) {
+        await reg.update({ pay_sso_id: canonical.id });
+      }
+      newIds.push(canonical.id);
+      seen.add(canonical.id);
+      groups += 1;
+      changed = true;
+      detail.push({ wa: reg.wa_number, email: canonical.email, kept: canonical.id, dropped: dupGroup.filter((x) => x !== canonical.id) });
+    }
+    if (changed) {
+      await reg.update({ sso_ids: newIds.join(", ") });
+    }
+  }
+  return { groups, mergedRows, detail };
+}
+
 async function daftarFirstAccountWithTrial(wa_number, email, password, opts = {}) {
   const { trialQuota = 2, maxPerLocation = 30 } = opts;
   const existing = await registeredCountSSOIDS(wa_number);
@@ -1546,4 +1678,6 @@ module.exports = {
   couponsCheckTakenTodayBulk,
   ssoPickBalancedLocation,
   daftarFirstAccountWithTrial,
+  daftarOrUpdateAccount,
+  dedupeSameEmailPerWa,
 };

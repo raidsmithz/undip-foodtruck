@@ -3,7 +3,7 @@ const { isUndipEmail, UNDIP_EMAIL_RE } = require("../helpers");
 const {
   registeredCountSSOIDS,
   ssoGetAccount,
-  daftarFirstAccountWithTrial,
+  daftarOrUpdateAccount,
   errorLogAdd,
 } = require("../../models/functions");
 const { loginSingleAccount } = require("../../undip_login/login_accounts");
@@ -46,10 +46,6 @@ module.exports = {
     return null;
   },
   async handle({ msg, params, client, deps = {} }) {
-    const count = await registeredCountSSOIDS(msg.from);
-    if (count >= MAX_ACCOUNTS)
-      return { reply: views.daftarMaxAccounts(MAX_ACCOUNTS) };
-
     if (params.kind === "format") return { reply: views.daftarFormat() };
     if (params.kind === "missing_password")
       return { reply: views.daftarMissingPassword(msg.body) };
@@ -60,16 +56,42 @@ module.exports = {
       return { reply: views.daftarFormat() };
     }
 
-    const result = await daftarFirstAccountWithTrial(
+    // MAX_ACCOUNTS check happens AFTER existing-email check inside
+    // daftarOrUpdateAccount so a repeat-email submission is treated as an
+    // update and never bumps the count.
+    const result = await daftarOrUpdateAccount(
       msg.from,
       params.email,
       params.password,
-      { trialQuota: TRIAL_QUOTA }
+      { trialQuota: TRIAL_QUOTA, maxAccounts: MAX_ACCOUNTS }
     );
 
     if (!result.ok) {
+      if (result.kind === "max_reached")
+        return { reply: views.daftarMaxAccounts(MAX_ACCOUNTS) };
       return {
         reply: "Terjadi kendala saat mendaftarkan akun. Silakan coba lagi.",
+      };
+    }
+
+    if (result.kind === "updated") {
+      // Re-trigger SSO login with the new credentials
+      if (!deps.skipAutoLogin) {
+        loginAndNotify(
+          client,
+          msg.from,
+          result.sso_id,
+          result.account_index,
+          params.email,
+          params.password
+        );
+      }
+      return {
+        reply:
+          `🔁 *Akun ${result.account_index} (${params.email}) — kredensial diperbarui*\n\n` +
+          "Email sudah terdaftar di nomor ini. Password lama digantikan dengan password baru. " +
+          "Sistem akan login ulang dengan kredensial baru ini.\n\n" +
+          "⏳ Notifikasi hasil login dikirim dalam <1 menit.",
       };
     }
 

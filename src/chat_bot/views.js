@@ -460,7 +460,8 @@ const adminHelp = () =>
   "- *_!gift N_* — tambah _N_ kupon ke setiap akun SSO milik user subscribed (max 100), kirim notif ke user\n\n" +
   "*Maintenance:*\n" +
   "- *_!migrate_lid_* — proactive merge semua @lid rows ke @c.us via WA Store\n" +
-  "- *_!sweep_inactive_* — unsubscribe user dorman (>90 hari)";
+  "- *_!sweep_inactive_* — unsubscribe user dorman (>90 hari)\n" +
+  "- *_!dedupe_* — merge duplikat akun (email sama di 1 WA)";
 
 const giftBonus = (n, accountCount) =>
   `🎁 *Bonus Kupon*\n\n` +
