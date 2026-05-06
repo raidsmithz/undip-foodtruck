@@ -10,6 +10,7 @@ const {
   waMsgEditFreeTrialStatus,
   waMsgGetSubscribedNumbers,
   waMsgGetUnsubscribedActiveSince,
+  ssoBulkGiftUnsubscribedActive,
   errorLogRecent,
   statsForAdmin,
   couponRunSummary,
@@ -208,6 +209,36 @@ async function handleBangCommand({ msg, client, deps }) {
         `*Users:* _${result.users}_\n` +
         `*Akun SSO:* _${result.accounts}_\n` +
         `_(notif WA dikirim ke tiap user dengan jitter — selesai dalam ~${Math.round((result.users * 1.05) / 60)} menit)_`,
+    };
+  }
+  if (msg.body.startsWith("!gift_inactive ")) {
+    const n = parseInt(msg.body.slice("!gift_inactive ".length).trim(), 10);
+    if (!Number.isInteger(n) || n <= 0 || n > 100) {
+      return { reply: "Format: *_!gift_inactive N_* (1–100). Contoh: *_!gift_inactive 2_*" };
+    }
+    const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const result = await ssoBulkGiftUnsubscribedActive(n, cutoff);
+    if (result.users === 0) {
+      return { reply: "Tidak ada user unsubscribed aktif 30 hari terakhir dengan akun terdaftar." };
+    }
+    (async () => {
+      let notified = 0;
+      for (const u of result.perUser) {
+        if (notified > 0) await humanSleep();
+        try {
+          await client.sendMessage(u.wa_number, views.giftBonus(n, u.sso_ids.length));
+          notified += 1;
+        } catch (_) {}
+      }
+      console.log(`[!gift_inactive] notified ${notified}/${result.users}`);
+    })();
+    await msg.react("🎁");
+    return {
+      reply:
+        `🎁 *Gift_Inactive +${n}x kupon* applied:\n` +
+        `*Users:* _${result.users}_\n` +
+        `*Akun SSO:* _${result.accounts}_\n` +
+        `_(unsubscribed, aktif 30 hari — notif WA dengan jitter ~${Math.round((result.users * 1.05) / 60)} menit)_`,
     };
   }
   if (msg.body === "!dedupe") {
