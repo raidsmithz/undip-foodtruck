@@ -71,39 +71,29 @@ const daftarMaxAccounts = (max) =>
   "Hapus salah satu akun: *_ufood akun 1 hapus_* _(ganti 1 sesuai nomor akun)_";
 
 const daftarSuccessWithTrial = ({ index, email, location, oldQuota, newQuota, submitEnabled }) =>
-  `✅ *Akun ${index} terdaftar + Free Trial aktif!* 🎁\n\n` +
+  `✅ *Akun ${index} terdaftar + Free Trial 2x!* 🎁\n\n` +
   `*Email:* _${email}_\n` +
-  `*Status:* _Logging In by System_ ⏳\n` +
-  `*Lokasi:* _${locationName(location)}_ (otomatis)\n` +
-  `*Kuota:* _${oldQuota}x_ → _${newQuota}x_ (Free Trial)\n` +
-  `*Submit:* _Disabled_ → _${submitEnabled ? "Enabled" : "Disabled"}_\n\n` +
-  "ℹ️ *Free Trial 2x* — sistem akan coba ambil kupon untuk Anda 2 kali. " +
-  "Kuota _tidak dikurangi_ kalau sistem gagal dapat kupon. Trial otomatis " +
-  "untuk akun pertama, hanya 1x per nomor WA.\n\n" +
+  `*Lokasi:* _${locationName(location)}_\n` +
+  `*Kuota:* _${oldQuota}x_ → _${newQuota}x_\n` +
+  `*Submit:* _${submitEnabled ? "Enabled ✅" : "Disabled (lokasi penuh)"}_\n\n` +
   (submitEnabled
-    ? `Sistem mulai coba ambil kupon di *${locationName(location)}* besok jam 10:00 WIB.\n\n`
-    : `Lokasi *${locationName(location)}* sedang penuh — submit otomatis tidak aktif. ` +
-      `Pilih lokasi lain via *_ufood akun ${index} lokasi_*.\n\n`) +
-  `Setelah trial habis, beli kuota: *_ufood akun ${index} beli_* (${PRICING})\n` +
-  `Cek akun: *_ufood akun_*  ·  Ubah lokasi: *_ufood akun ${index} lokasi {1-4}_*\n\n` +
-  "⏳ *Sistem sedang login ke akun SSO Undip Anda.* " +
-  "Notifikasi hasil login akan dikirim dalam <1 menit.";
+    ? ""
+    : `Pilih lokasi lain: *_ufood akun ${index} lokasi_*\n\n`) +
+  `Beli kuota: *_ufood akun ${index} beli_*\n\n` +
+  "⏳ Login SSO sedang diproses, notif dalam <1 menit.";
 
 const daftarSuccessNoTrial = ({ index, email, location, reason }) =>
   `✅ *Akun ${index} terdaftar*\n\n` +
   `*Email:* _${email}_\n` +
-  `*Status:* _Logging In by System_ ⏳\n` +
-  `*Lokasi:* _${locationName(location)}_ (otomatis)\n` +
-  `*Kuota:* _0x_   *Submit:* _Disabled_\n\n` +
+  `*Lokasi:* _${locationName(location)}_\n` +
+  `*Kuota:* _0x_ · *Submit:* _Disabled_\n\n` +
   (reason === "trial_used"
-    ? "ℹ️ Free trial sudah pernah digunakan di nomor WA ini.\n"
+    ? "ℹ️ Free trial sudah digunakan di nomor ini.\n\n"
     : reason === "not_first"
-    ? "ℹ️ Free trial hanya berlaku untuk akun pertama. Akun ini tidak mendapat trial.\n"
+    ? "ℹ️ Free trial hanya untuk akun pertama.\n\n"
     : "") +
-  `\nBeli kuota: *_ufood akun ${index} beli_* (${PRICING})\n` +
-  `Atur lokasi: *_ufood akun ${index} lokasi {1-4}_*\n\n` +
-  "⏳ *Sistem sedang login ke akun SSO Undip Anda.* " +
-  "Notifikasi hasil login akan dikirim dalam <1 menit.";
+  `Beli kuota: *_ufood akun ${index} beli_*\n\n` +
+  "⏳ Login SSO sedang diproses, notif dalam <1 menit.";
 
 const loginResult = (idx, email, statusCode) => {
   switch (statusCode) {
