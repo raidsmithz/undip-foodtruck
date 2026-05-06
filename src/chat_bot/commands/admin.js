@@ -9,6 +9,7 @@ const {
   waMsgGetFreeTrialStatus,
   waMsgEditFreeTrialStatus,
   waMsgGetSubscribedNumbers,
+  waMsgGetUnsubscribedActiveSince,
   errorLogRecent,
   statsForAdmin,
   couponRunSummary,
@@ -232,6 +233,25 @@ async function handleBangCommand({ msg, client, deps }) {
         `*Sweep Inactive*\n` +
         `*Cutoff:* updated_at < ${cutoff.toISOString().slice(0, 10)}\n` +
         `*Unsubscribed:* _${pruned} user_`,
+    };
+  }
+  if (msg.body.startsWith("!kirim_inactive ")) {
+    const sendMessage = msg.body.slice("!kirim_inactive ".length);
+    const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const numbers = await waMsgGetUnsubscribedActiveSince(cutoff);
+    let sent = 0;
+    for (const wa of numbers) {
+      if (sent > 0) await humanSleep();
+      try {
+        await client.sendMessage(wa, sendMessage);
+        sent += 1;
+      } catch (e) {
+        // skip failed sends silently
+      }
+    }
+    await msg.react("👍");
+    return {
+      reply: `Notif terkirim ke ${sent} nomor (unsubscribed, aktif 30 hari terakhir).`,
     };
   }
   if (msg.body === "!errors" || msg.body.startsWith("!errors ")) {

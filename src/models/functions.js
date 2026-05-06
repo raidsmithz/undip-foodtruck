@@ -1254,6 +1254,18 @@ async function waMsgUnsubscribeInactiveBefore(cutoffDate) {
   }
 }
 
+async function waMsgGetUnsubscribedActiveSince(cutoffDate) {
+  const rows = await WAMessages.findAll({
+    where: {
+      subscribed: 0,
+      updated_at: { [Op.gte]: cutoffDate },
+    },
+    attributes: ["wa_number"],
+    raw: true,
+  });
+  return rows.map((r) => r.wa_number);
+}
+
 async function listLidWaNumbers() {
   const [waRows, regRows] = await Promise.all([
     WAMessages.findAll({
@@ -1687,6 +1699,7 @@ module.exports = {
   mergeLidIntoCus,
   listLidWaNumbers,
   waMsgUnsubscribeInactiveBefore,
+  waMsgGetUnsubscribedActiveSince,
   ssoBulkGiftSubscribed,
   getCountSubmissionAll,
   couponsCountLatestByLocation,
