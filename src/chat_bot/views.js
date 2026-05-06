@@ -54,7 +54,7 @@ const commandsList = () =>
 
 const daftarFormat = () =>
   "Format: *_ufood daftar {email} {password}_*\n\n" +
-  "*_ufood daftar admin@students.undip.ac.id rahasia123_*\n\n" +
+  "Contoh:\n*_ufood daftar akun@students.undip.ac.id abc123_*\n\n" +
   "Email harus berakhiran *@students.undip.ac.id*.";
 
 const daftarMissingPassword = (msgBody) =>
@@ -64,7 +64,7 @@ const daftarMissingPassword = (msgBody) =>
 
 const daftarBadEmail = () =>
   "Email harus berakhiran *@students.undip.ac.id* (akun SSO mahasiswa Undip).\n\n" +
-  "*_ufood daftar admin@students.undip.ac.id rahasia123_*";
+  "Contoh:\n*_ufood daftar akun@students.undip.ac.id abc123_*";
 
 const daftarMaxAccounts = (max) =>
   `Maksimal pendaftaran hanya ${max} akun per nomor WhatsApp.\n\n` +
@@ -214,7 +214,7 @@ const lokasiFormat = (idx, account) =>
   `*Lokasi:* _${locationName(account.pick_location)}_\n\n` +
   "Pilih lokasi:\n" +
   LOCATION_OPTIONS_BLOCK +
-  `\n\n*_ufood akun ${idx} lokasi 3_*`;
+  `\n\nContoh:\n*_ufood akun ${idx} lokasi 3_*`;
 
 const submitSnapshot = (idx, account, oldVal, newVal) =>
   `✅ *Akun ${idx} (${account.email})*\n\n` +
@@ -247,7 +247,7 @@ const gantiSnapshot = (idx, account, oldEmail, newEmail) =>
 
 const gantiFormat = (idx) =>
   `Format: *_ufood akun ${idx} ganti {email} {password}_*\n\n` +
-  `*_ufood akun ${idx} ganti baru@students.undip.ac.id passwordbaru_*`;
+  `Contoh:\n*_ufood akun ${idx} ganti akun@students.undip.ac.id abc123_*`;
 
 const beliQrisCaption = (idx, account, ssoCount) =>
   `*${idx}) ${account.email}*\n` +
