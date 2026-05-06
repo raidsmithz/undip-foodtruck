@@ -441,9 +441,10 @@ const adminErrors = (rows) => {
 const adminHelp = () =>
   "*Admin Commands*\n\n" +
   "*Operasional:*\n" +
-  "- *_!login_* — trigger SSO re-login (akun status_login=3)\n" +
+  "- *_!login_* — trigger SSO re-login; ringkasan dikirim ke admin setelah selesai\n" +
   "- *_!kupon_* — trigger pengiriman kupon hari ini\n" +
   "- *_!kirim {pesan}_* — broadcast ke semua user subscribed\n" +
+  "- *_!kirim_inactive {pesan}_* — broadcast ke unsubscribed aktif 30 hari terakhir\n" +
   "- *_!unread_* — replay unread messages ke router\n\n" +
   "*Monitoring:*\n" +
   "- *_!stats_* — stats sistem (users, SSO, submit/lokasi, errors)\n" +
@@ -457,7 +458,8 @@ const adminHelp = () =>
   "- Reply image bukti bayar dengan *_tidak_* — tolak pembayaran\n" +
   "- Reply pesan ping dengan *_sudah_* — resolve ping handoff\n\n" +
   "*Hadiah:*\n" +
-  "- *_!gift N_* — tambah _N_ kupon ke setiap akun SSO milik user subscribed (max 100), kirim notif ke user\n\n" +
+  "- *_!gift N_* — tambah _N_ kupon ke akun SSO milik user subscribed (max 100)\n" +
+  "- *_!gift_inactive N_* — tambah _N_ kupon ke akun SSO milik unsubscribed aktif 30 hari\n\n" +
   "*Maintenance:*\n" +
   "- *_!migrate_lid_* — proactive merge semua @lid rows ke @c.us via WA Store\n" +
   "- *_!sweep_inactive_* — unsubscribe user dorman (>90 hari)\n" +
