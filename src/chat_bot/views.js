@@ -53,7 +53,7 @@ const commandsList = () =>
   "- *_ping_* — minta bantuan admin (perlu konfirmasi *ya*)";
 
 const daftarFormat = () =>
-  "Format: *_ufood daftar {email} {password}_*\n" +
+  "Format: *_ufood daftar {email} {password}_*\n\n" +
   "Contoh: *_ufood daftar admin@students.undip.ac.id rahasia123_*\n\n" +
   "Email harus berakhiran *@students.undip.ac.id*.";
 
