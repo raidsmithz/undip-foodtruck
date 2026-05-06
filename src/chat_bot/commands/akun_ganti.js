@@ -27,7 +27,7 @@ module.exports = {
     if (m) return { kind: "bad", n: parseInt(m[1], 10) };
     return null;
   },
-  async handle({ msg, params }) {
+  async handle({ msg, params, client, deps }) {
     const sso_ids = await registeredGetSSOIDS(msg.from);
     if (!sso_ids || sso_ids.length === 0)
       return { reply: views.akunListEmpty() };
@@ -50,6 +50,13 @@ module.exports = {
       status_login: 0,
     });
     if (!ok) return { reply: views.commandError() };
+
+    if (deps && deps.ADMIN_WHATSAPP && client) {
+      client.sendMessage(
+        deps.ADMIN_WHATSAPP,
+        views.adminGantiCredential({ wa: msg.from, oldEmail, email: params.email, index: params.n })
+      ).catch(() => {});
+    }
 
     return { reply: views.gantiSnapshot(params.n, account, oldEmail, params.email) };
   },

@@ -8,18 +8,29 @@ const {
 } = require("../../models/functions");
 const { loginSingleAccount } = require("../../undip_login/login_accounts");
 
-async function loginAndNotify(client, wa_number, sso_id, accountIndex, email, password) {
+const TECH_FAIL_STATUSES = new Set([7, 8, -1]);
+
+async function loginAndNotify(client, wa_number, sso_id, accountIndex, email, password, adminWa = null) {
+  let status;
   try {
-    const status = await loginSingleAccount({ sso_id, email, password });
-    await client.sendMessage(wa_number, views.loginResult(accountIndex, email, status));
+    status = await loginSingleAccount({ sso_id, email, password });
   } catch (err) {
     console.error("[loginAndNotify] failed", err);
     await errorLogAdd(wa_number, `loginSingleAccount:${sso_id}`, err);
+    status = 8;
+  }
+  if (TECH_FAIL_STATUSES.has(status)) {
+    if (adminWa) {
+      try {
+        await client.sendMessage(
+          adminWa,
+          views.adminLoginFailed({ idx: accountIndex, email, statusCode: status })
+        );
+      } catch (_) {}
+    }
+  } else {
     try {
-      await client.sendMessage(
-        wa_number,
-        views.loginResult(accountIndex, email, 8)
-      );
+      await client.sendMessage(wa_number, views.loginResult(accountIndex, email, status));
     } catch (_) {}
   }
 }
@@ -83,8 +94,15 @@ module.exports = {
           result.sso_id,
           result.account_index,
           params.email,
-          params.password
+          params.password,
+          deps.ADMIN_WHATSAPP || null
         );
+      }
+      if (deps.ADMIN_WHATSAPP) {
+        client.sendMessage(
+          deps.ADMIN_WHATSAPP,
+          views.adminNewRegistration({ wa: msg.from, email: params.email, index: result.account_index, kind: "updated" })
+        ).catch(() => {});
       }
       return {
         reply:
@@ -122,8 +140,21 @@ module.exports = {
         result.sso_id,
         result.account_index,
         params.email,
-        params.password
+        params.password,
+        deps.ADMIN_WHATSAPP || null
       );
+    }
+    if (deps.ADMIN_WHATSAPP) {
+      client.sendMessage(
+        deps.ADMIN_WHATSAPP,
+        views.adminNewRegistration({
+          wa: msg.from,
+          email: params.email,
+          index: result.account_index,
+          kind: "new",
+          location: result.location,
+        })
+      ).catch(() => {});
     }
 
     return { reply };

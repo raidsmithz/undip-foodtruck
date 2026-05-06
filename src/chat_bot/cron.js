@@ -13,6 +13,7 @@ const {
   getFalseSubmissionAccountsToday,
   ssoEditAccountReminded,
   waMsgExpireStaleBlocks,
+  couponRunSummary,
 } = require("../models/functions");
 
 const COUPON_BATCH_LIMIT = 16;
@@ -30,7 +31,7 @@ const RELOGIN_SCHEDULE = "15,45 * * * *";
 const REMINDER_SCHEDULE = "0 7 * * 1-4";
 const BLOCKED_SWEEP_SCHEDULE = "*/30 * * * *";
 
-async function sendCoupons(client) {
+async function sendCoupons(client, adminWa = null) {
   console.log("TASK: Sending taken coupons...");
   const taken = await couponsGetAllEntriesToday();
   if (!taken.length) return;
@@ -71,9 +72,24 @@ async function sendCoupons(client) {
       sent += 1;
     }
   }
+
+  // After sending this batch, check if all coupons for the day are now
+  // delivered. If so, fire a one-time summary to admin.
+  if (sent > 0 && adminWa) {
+    const latest = await couponsGetAllEntriesToday();
+    const pending = latest.filter((r) => !r.wa_sent_at).length;
+    if (pending === 0) {
+      try {
+        const summary = await couponRunSummary();
+        await client.sendMessage(adminWa, views.adminCouponRun(summary));
+      } catch (e) {
+        console.error("[sendCoupons] admin summary failed", e.message);
+      }
+    }
+  }
 }
 
-async function doLoginAccounts(client) {
+async function doLoginAccounts(client, adminWa = null, forceReport = false) {
   const before = await getCombinedSSOAccounts();
   const beforeMap = {};
   for (const acc of before) beforeMap[acc.dataValues.id] = acc.dataValues.status_login;
@@ -105,6 +121,24 @@ async function doLoginAccounts(client) {
       await client.sendMessage(wa, willSend);
     } catch (_) {}
     notified += 1;
+  }
+
+  if (adminWa && (forceReport || updatedIds.length > 0)) {
+    try {
+      const after = await getCombinedSSOAccounts();
+      const total = after.length;
+      const loggedIn = after.filter((a) => a.dataValues.status_login === 1).length;
+      const wrongCreds = after.filter((a) => [4, 5].includes(a.dataValues.status_login)).length;
+      const notActive = after.filter((a) => [2, 6].includes(a.dataValues.status_login)).length;
+      const techFail = after.filter((a) => [7, 8].includes(a.dataValues.status_login)).length;
+      const notYet = after.filter((a) => a.dataValues.status_login === 0).length;
+      await client.sendMessage(
+        adminWa,
+        views.adminLoginSummary({ total, loggedIn, wrongCreds, notActive, techFail, notYet })
+      );
+    } catch (e) {
+      console.error("[doLoginAccounts] admin summary failed", e.message);
+    }
   }
 }
 
@@ -151,11 +185,11 @@ async function sweepStaleBlocks() {
 // schedule is correct even if the host process forgets to set TZ env.
 const TZ = "Asia/Jakarta";
 
-function start(client) {
+function start(client, adminWa = null) {
   for (const t of COUPON_TIMES)
-    schedule.scheduleJob({ rule: t, tz: TZ }, () => sendCoupons(client));
+    schedule.scheduleJob({ rule: t, tz: TZ }, () => sendCoupons(client, adminWa));
   schedule.scheduleJob({ rule: RELOGIN_SCHEDULE, tz: TZ }, () =>
-    doLoginAccounts(client)
+    doLoginAccounts(client, adminWa)
   );
   schedule.scheduleJob({ rule: REMINDER_SCHEDULE, tz: TZ }, () =>
     reminderActivationSubmission(client)

@@ -144,7 +144,7 @@ async function handleBangCommand({ msg, client, deps }) {
   if (msg.body === "!login") {
     if (deps.doLoginAccounts) {
       deps.doLoginAccounts();
-      return { reply: "Logging in accounts..." };
+      return { reply: "⏳ Proses login dimulai. Ringkasan hasil akan dikirim setelah selesai." };
     }
     return { reply: "Login task tidak tersedia." };
   }

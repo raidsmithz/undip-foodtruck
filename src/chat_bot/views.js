@@ -499,6 +499,47 @@ const adminCouponRun = (r) => {
   );
 };
 
+const adminLoginSummary = ({ total, loggedIn, wrongCreds, notActive, techFail, notYet }) => {
+  const date = format(new Date(), "dd/MM/yyyy HH:mm");
+  let body =
+    `*Login Akun — ${date}*\n\n` +
+    `*Total akun:* _${total}_\n` +
+    `*Logged in:* _${loggedIn}_ ✅\n` +
+    `*Salah kredensial:* _${wrongCreds}_ ❌\n`;
+  if (notActive > 0) body += `*Tidak aktif/lulus:* _${notActive}_ ⛔\n`;
+  if (techFail > 0) body += `*Error teknis:* _${techFail}_ ⚠️\n`;
+  body += `*Belum login:* _${notYet}_`;
+  return body;
+};
+
+const adminNewRegistration = ({ wa, email, index, kind, location }) => {
+  if (kind === "updated") {
+    return (
+      `🔁 *Credential Update — Akun ${index}*\n` +
+      `*WA:* _${wa}_\n` +
+      `*Email:* _${email}_ (password baru)`
+    );
+  }
+  const locNames = { 1: "SA-MWA", 2: "Student Center", 3: "Pendopo FSM (FPIK)", 4: "Audit. Imam Bardjo" };
+  return (
+    `🆕 *Pendaftaran Baru — Akun ${index}*\n` +
+    `*WA:* _${wa}_\n` +
+    `*Email:* _${email}_\n` +
+    `*Lokasi:* _${locNames[location] || `Lokasi ${location}`}_`
+  );
+};
+
+const adminGantiCredential = ({ wa, oldEmail, email, index }) =>
+  `🔁 *Ganti Kredensial — Akun ${index}*\n` +
+  `*WA:* _${wa}_\n` +
+  `*Email:* _${oldEmail}_ → _${email}_`;
+
+const adminLoginFailed = ({ idx, email, statusCode }) =>
+  `⚠️ *Auto-Login Gagal — Akun ${idx}*\n` +
+  `*Email:* _${email}_\n` +
+  `*Kode:* _${statusCode === 7 ? "Server SSO error" : "Kendala teknis"}_\n` +
+  `_(retry otomatis tiap 15 mnt)_`;
+
 const adminStats = (s) =>
   `*Sistem Stats — admin*\n\n` +
   `*Pengguna terdaftar:* _${s.totalRegistered}_ ` +
@@ -579,4 +620,8 @@ module.exports = {
   adminCouponRun,
   adminHelp,
   giftBonus,
+  adminLoginSummary,
+  adminNewRegistration,
+  adminGantiCredential,
+  adminLoginFailed,
 };

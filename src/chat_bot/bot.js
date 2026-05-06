@@ -52,8 +52,8 @@ const deps = {
   ADMIN_WHATSAPP_IDS,
   ADMIN_WHATSAPP_SELF_IDS,
   // late-bound: cron.start exposes these so admin's !login / !kupon can call them
-  doLoginAccounts: () => cron.doLoginAccounts(client),
-  sendCoupons: () => cron.sendCoupons(client),
+  doLoginAccounts: () => cron.doLoginAccounts(client, ADMIN_WHATSAPP, true),
+  sendCoupons: () => cron.sendCoupons(client, ADMIN_WHATSAPP),
   router,
 };
 
@@ -92,7 +92,7 @@ const deps = {
     if (listenerInitialized) return;
     await new Promise((r) => setTimeout(r, 20000));
 
-    cron.start(client);
+    cron.start(client, ADMIN_WHATSAPP);
 
     client.on("message", async (msg) => {
       try {
