@@ -54,7 +54,7 @@ const commandsList = () =>
 
 const daftarFormat = () =>
   "Format: *_ufood daftar {email} {password}_*\n" +
-  "Contoh: *_ufood daftar admin@students.undip.ac.id rahasia123_*\n" +
+  "Contoh: *_ufood daftar admin@students.undip.ac.id rahasia123_*\n\n" +
   "Email harus berakhiran *@students.undip.ac.id*.";
 
 const daftarMissingPassword = (msgBody) =>
