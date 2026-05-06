@@ -59,7 +59,7 @@ const daftarFormat = () =>
 
 const daftarMissingPassword = (msgBody) =>
   "Anda hanya memasukkan email. Tambahkan password.\n\n" +
-  "Format: *_ufood daftar {email} {password}_*\n" +
+  "Format: *_ufood daftar {email} {password}_*\n\n" +
   `Contoh: *_${msgBody} rahasia123_*`;
 
 const daftarBadEmail = () =>
@@ -109,23 +109,23 @@ const loginResult = (idx, email, statusCode) => {
   switch (statusCode) {
     case 1:
       return (
-        `✅ *Akun ${idx} (${email}) berhasil login!*\n` +
+        `✅ *Akun ${idx} (${email}) berhasil login!*\n\n` +
         "Akun siap untuk pengambilan kupon otomatis."
       );
     case 4:
       return (
-        `❌ *Akun ${idx} (${email}) gagal login: password salah.*\n` +
+        `❌ *Akun ${idx} (${email}) gagal login: password salah.*\n\n` +
         `Ganti password dengan: *_ufood akun ${idx} ganti {email} {password_baru}_*`
       );
     case 5:
       return (
-        `❌ *Akun ${idx} (${email}) gagal login: email tidak terdaftar di SSO Undip.*\n` +
+        `❌ *Akun ${idx} (${email}) gagal login: email tidak terdaftar di SSO Undip.*\n\n` +
         `Ganti email dengan: *_ufood akun ${idx} ganti {email_baru} {password}_*`
       );
     case 2:
     case 6:
       return (
-        `❌ *Akun ${idx} (${email}) terdeteksi sudah lulus / bukan mahasiswa aktif Undip.*\n` +
+        `❌ *Akun ${idx} (${email}) terdeteksi sudah lulus / bukan mahasiswa aktif Undip.*\n\n` +
         "SSO Undip menolak akses untuk akun ini. Sistem layanan ini khusus mahasiswa aktif."
       );
     case 7:
@@ -145,7 +145,7 @@ const loginResult = (idx, email, statusCode) => {
 };
 
 const akunListEmpty = () =>
-  "Belum ada akun terdaftar. Mulai dengan:\n" +
+  "Belum ada akun terdaftar. Mulai dengan:\n\n" +
   "*_ufood daftar {email} {password}_*";
 
 const akunCouponLabel = ({ takenSuccessToday, anyTakenToday, weekday }) => {
@@ -193,7 +193,7 @@ const akunDetail = (idx, account) =>
 const akunNotFound = (n) => `Anda tidak memiliki akun nomor (${n}).`;
 
 const lokasiSnapshot = (idx, account, oldLoc, newLoc) =>
-  `✅ *Akun ${idx} (${account.email})*\n` +
+  `✅ *Akun ${idx} (${account.email})*\n\n` +
   snapshotLine("Lokasi", locationName(oldLoc), locationName(newLoc));
 
 const LOCATION_OPTIONS_BLOCK =
@@ -203,10 +203,10 @@ const LOCATION_OPTIONS_BLOCK =
   "*4.* Audit. Imam Bardjo";
 
 const lokasiInvalid = () =>
-  "Lokasi tidak tersedia. Pilihan:\n" + LOCATION_OPTIONS_BLOCK;
+  "Lokasi tidak tersedia. Pilihan:\n\n" + LOCATION_OPTIONS_BLOCK;
 
 const lokasiFullActive = () =>
-  "⚠️ Lokasi tujuan sudah penuh dan submit Anda sedang aktif.\n" +
+  "⚠️ Lokasi tujuan sudah penuh dan submit Anda sedang aktif.\n\n" +
   "Pantau ketersediaan dengan *_ufood status_* atau pilih lokasi lain.";
 
 const lokasiFormat = (idx, account) =>
@@ -217,7 +217,7 @@ const lokasiFormat = (idx, account) =>
   `\n\nContoh: *_ufood akun ${idx} lokasi 3_*`;
 
 const submitSnapshot = (idx, account, oldVal, newVal) =>
-  `✅ *Akun ${idx} (${account.email})*\n` +
+  `✅ *Akun ${idx} (${account.email})*\n\n` +
   snapshotLine(
     "Submit",
     oldVal ? "Enabled" : "Disabled",
@@ -240,13 +240,13 @@ const submitFormat = (idx, account) =>
   `Nonaktifkan: *_ufood akun ${idx} submit disable_*`;
 
 const gantiSnapshot = (idx, account, oldEmail, newEmail) =>
-  `✅ *Akun ${idx}*\n` +
+  `✅ *Akun ${idx}*\n\n` +
   `*Email:* _${newEmail}_\n` +
   "*Password:* _(sudah diganti)_\n\n" +
   "Status login akan terupdate dalam <30 menit.";
 
 const gantiFormat = (idx) =>
-  `Format: *_ufood akun ${idx} ganti {email} {password}_*\n` +
+  `Format: *_ufood akun ${idx} ganti {email} {password}_*\n\n` +
   `Contoh: *_ufood akun ${idx} ganti baru@students.undip.ac.id passwordbaru_*`;
 
 const beliQrisCaption = (idx, account, ssoCount) =>
@@ -264,7 +264,7 @@ const imageNoPaySelection = () =>
   "lalu kirim ulang bukti bayar.";
 
 const imageNoAccounts = () =>
-  "Belum punya akun terdaftar. Daftar dulu:\n" +
+  "Belum punya akun terdaftar. Daftar dulu:\n\n" +
   "*_ufood daftar {email} {password}_*";
 
 const paymentReceived = () =>
@@ -272,7 +272,7 @@ const paymentReceived = () =>
   "(biasanya <30 menit jam kerja).";
 
 const paymentSuccess = ({ email, oldQuota, newQuota, submitEnabled }) =>
-  `👍 Pembayaran dikonfirmasi.\n*Akun _${email}_*\n` +
+  `👍 Pembayaran dikonfirmasi.\n\n*Akun _${email}_*\n` +
   snapshotLine("Kuota", `${oldQuota}x`, `${newQuota}x`) + "\n" +
   (submitEnabled
     ? "*Submit:* _Enabled_ (lokasi masih ada slot)"
@@ -297,7 +297,7 @@ const hapusConfirm = (idx, account) =>
   "_(otomatis dibatalkan setelah 5 menit jika tidak ada balasan)_";
 
 const hapusSuccess = (email, remainingCount) =>
-  `✅ Akun *_${email}_* berhasil dihapus.\n` +
+  `✅ Akun *_${email}_* berhasil dihapus.\n\n` +
   (remainingCount > 0
     ? `Akun tersisa: *${remainingCount}* (penomoran ulang otomatis).`
     : "Tidak ada akun lain. Daftar baru: *_ufood daftar {email} {password}_*");
@@ -415,11 +415,11 @@ const reLoginSuccess = (email) =>
   `✅ *${email}* — berhasil login.`;
 
 const reminderUnsubmitted = (email, quota, idx = 1) =>
-  `*Reminder*\n*${email}* masih punya _${quota}x_ kuota tapi submit belum aktif.\n\n` +
+  `*Reminder*\n\n*${email}* masih punya _${quota}x_ kuota tapi submit belum aktif.\n\n` +
   `Aktifkan: *_ufood akun ${idx} submit enable_*`;
 
 const reminderQuotaEmpty = (email, idx = 1) =>
-  `*Reminder*\n*${email}* kuota habis.\n\n` +
+  `*Reminder*\n\n*${email}* kuota habis.\n\n` +
   `Beli: *_ufood akun ${idx} beli_*`;
 
 const adminErrors = (rows) => {
