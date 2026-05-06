@@ -70,7 +70,14 @@ const daftarMaxAccounts = (max) =>
   `Maksimal pendaftaran hanya ${max} akun per nomor WhatsApp.\n\n` +
   "Hapus salah satu akun: *_ufood akun 1 hapus_* _(ganti 1 sesuai nomor akun)_";
 
-const daftarSuccessWithTrial = ({ index, email, location, oldQuota, newQuota, submitEnabled }) =>
+const daftarSuccessWithTrial = ({
+  index,
+  email,
+  location,
+  oldQuota,
+  newQuota,
+  submitEnabled,
+}) =>
   `✅ *Akun ${index} terdaftar + Free Trial 2x!* 🎁\n\n` +
   `*Email:* _${email}_\n` +
   `*Lokasi:* _${locationName(location)}_\n` +
@@ -90,8 +97,8 @@ const daftarSuccessNoTrial = ({ index, email, location, reason }) =>
   (reason === "trial_used"
     ? "ℹ️ Free trial sudah digunakan di nomor ini.\n\n"
     : reason === "not_first"
-    ? "ℹ️ Free trial hanya untuk akun pertama.\n\n"
-    : "") +
+      ? "ℹ️ Free trial hanya untuk akun pertama.\n\n"
+      : "") +
   `Beli kuota: *_ufood akun ${index} beli_*\n\n` +
   "⏳ Login SSO sedang diproses, notif dalam <1 menit.";
 
@@ -211,7 +218,7 @@ const submitSnapshot = (idx, account, oldVal, newVal) =>
   snapshotLine(
     "Submit",
     oldVal ? "Enabled" : "Disabled",
-    newVal ? "Enabled" : "Disabled"
+    newVal ? "Enabled" : "Disabled",
   );
 
 const submitNoQuota = (idx) =>
@@ -263,7 +270,8 @@ const paymentReceived = () =>
 
 const paymentSuccess = ({ email, oldQuota, newQuota, submitEnabled }) =>
   `👍 Pembayaran dikonfirmasi.\n\n*Akun _${email}_*\n` +
-  snapshotLine("Kuota", `${oldQuota}x`, `${newQuota}x`) + "\n" +
+  snapshotLine("Kuota", `${oldQuota}x`, `${newQuota}x`) +
+  "\n" +
   (submitEnabled
     ? "*Submit:* _Enabled_ (lokasi masih ada slot)"
     : "_(submit tetap pada status sebelumnya — cek dengan *_ufood akun_*)_") +
@@ -282,9 +290,8 @@ const hapusConfirm = (idx, account) =>
   `*${idx}) ${account.email}*\n` +
   `*Lokasi:* _${locationName(account.pick_location)}_\n` +
   `*Kuota tersisa:* _${account.available_quota}x_\n\n` +
-  `⚠️ Penghapusan akan *menghilangkan kuota tersisa _${account.available_quota}x_*.\n` +
-  "Yakin? Ketik *_ya_* untuk konfirmasi atau *_batal_* untuk membatalkan.\n" +
-  "_(otomatis dibatalkan setelah 5 menit jika tidak ada balasan)_";
+  `⚠️ Penghapusan akan *menghilangkan kuota tersisa _${account.available_quota}x_*.\n\n` +
+  "Yakin? Ketik *_ya_* untuk konfirmasi atau *_batal_* untuk membatalkan.";
 
 const hapusSuccess = (email, remainingCount) =>
   `✅ Akun *_${email}_* berhasil dihapus.\n\n` +
@@ -295,14 +302,15 @@ const hapusSuccess = (email, remainingCount) =>
 const hapusBatal = () => "Penghapusan akun dibatalkan.";
 
 const pendingHint = (action) => {
-  const label = action && action.startsWith("delete")
-    ? "*penghapusan akun*"
-    : action === "ping"
-    ? "*ping admin*"
-    : "*aksi sebelumnya*";
+  const label =
+    action && action.startsWith("delete")
+      ? "*penghapusan akun*"
+      : action === "ping"
+        ? "*ping admin*"
+        : "*aksi sebelumnya*";
   return (
-    `Anda sedang dalam konfirmasi ${label}.\n` +
-    "Ketik *_ya_* untuk lanjut, atau *_batal_* untuk membatalkan. " +
+    `Anda sedang dalam konfirmasi ${label}.\n\n` +
+    "Ketik *_ya_* untuk lanjut, atau *_batal_* untuk membatalkan.\n\n" +
     "Otomatis dibatalkan setelah 5 menit jika tidak ada respon."
   );
 };
@@ -401,8 +409,7 @@ const reLoginEmailWrong = (email, idx = 1) =>
   `❌ *${email}* — email salah.\n\n` +
   `Ganti: *_ufood akun ${idx} ganti {email_baru} {password}_*`;
 
-const reLoginSuccess = (email) =>
-  `✅ *${email}* — berhasil login.`;
+const reLoginSuccess = (email) => `✅ *${email}* — berhasil login.`;
 
 const reminderUnsubmitted = (email, quota, idx = 1) =>
   `*Reminder*\n\n*${email}* masih punya _${quota}x_ kuota tapi submit belum aktif.\n\n` +
@@ -491,7 +498,14 @@ const adminCouponRun = (r) => {
   );
 };
 
-const adminLoginSummary = ({ total, loggedIn, wrongCreds, notActive, techFail, notYet }) => {
+const adminLoginSummary = ({
+  total,
+  loggedIn,
+  wrongCreds,
+  notActive,
+  techFail,
+  notYet,
+}) => {
   const date = format(new Date(), "dd/MM/yyyy HH:mm");
   let body =
     `*Login Akun — ${date}*\n\n` +
@@ -512,7 +526,12 @@ const adminNewRegistration = ({ wa, email, index, kind, location }) => {
       `*Email:* _${email}_ (password baru)`
     );
   }
-  const locNames = { 1: "SA-MWA", 2: "Student Center", 3: "Pendopo FSM (FPIK)", 4: "Audit. Imam Bardjo" };
+  const locNames = {
+    1: "SA-MWA",
+    2: "Student Center",
+    3: "Pendopo FSM (FPIK)",
+    4: "Audit. Imam Bardjo",
+  };
   return (
     `🆕 *Pendaftaran Baru — Akun ${index}*\n` +
     `*WA:* _${wa}_\n` +
