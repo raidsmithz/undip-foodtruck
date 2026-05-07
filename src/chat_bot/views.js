@@ -31,26 +31,19 @@ const ufoodPanduan = () =>
   "Daftar perintah: *_commands_*  ·  Bantuan admin: *_ping_*";
 
 const commandsList = () =>
-  "*Daftar Perintah UFood*\n\n" +
-  "_Angka *1* di bawah = nomor akun. Cek nomor akun Anda lewat *_ufood akun_* (kalau punya 2 akun, gantilah jadi *2*, dst)._\n\n" +
+  "*Perintah UFood*\n\n" +
+  "_Ganti angka *1* sesuai nomor akun (`ufood akun` untuk cek)_\n\n" +
   "*Mulai:*\n" +
-  "- *_ufood_* — panduan & aturan\n" +
-  "- *_ufood daftar {email} {password}_* — daftar akun (free trial 2x)\n\n" +
-  "*Kelola akun:*\n" +
-  "- *_ufood akun_* — daftar semua akun + status\n" +
-  "- *_ufood akun 1_* — detail akun ke-1\n" +
-  "- *_ufood akun 1 beli_* — beli kuota (QRIS)\n" +
-  "- *_ufood akun 1 ganti {email} {password}_* — ganti kredensial\n" +
-  "- *_ufood akun 1 lokasi_* — lihat lokasi sekarang & opsi ubah\n" +
-  "- *_ufood akun 1 lokasi 1_* — set lokasi (1-4)\n" +
-  "- *_ufood akun 1 submit_* — lihat status submit & opsi ubah\n" +
-  "- *_ufood akun 1 submit enable_* — nyalakan submit otomatis\n" +
-  "- *_ufood akun 1 submit disable_* — matikan submit\n" +
-  "- *_ufood akun 1 hapus_* — hapus akun (perlu konfirmasi *ya*)\n\n" +
+  "`ufood` • `ufood daftar {email} {password}`\n\n" +
+  "*Akun:*\n" +
+  "`ufood akun` • `ufood akun 1`\n" +
+  "`ufood akun 1 beli` — beli kuota (QRIS)\n" +
+  "`ufood akun 1 ganti {email} {password}` — ganti kredensial\n" +
+  "`ufood akun 1 lokasi` / `lokasi 1` — lihat/ubah lokasi\n" +
+  "`ufood akun 1 submit` / `submit enable` / `submit disable`\n" +
+  "`ufood akun 1 hapus`\n\n" +
   "*Lainnya:*\n" +
-  "- *_ufood status_* — statistik & kuota lokasi\n" +
-  "- *_ufood subscribe_* / *_ufood unsubscribe_* — toggle notifikasi update\n" +
-  "- *_ping_* — minta bantuan admin (perlu konfirmasi *ya*)";
+  "`ufood status` • `ufood subscribe` / `unsubscribe` • `ping`";
 
 const daftarFormat = () =>
   "Format: *_ufood daftar {email} {password}_*\n\n" +
