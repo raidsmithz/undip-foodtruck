@@ -19,6 +19,7 @@ const {
   waMsgUnsubscribeInactiveBefore,
   ssoBulkGiftSubscribed,
   dedupeSameEmailPerWa,
+  ssoResetFailedLogins,
 } = require("../../models/functions");
 
 // Users inactive for this many days get auto-unsubscribed before any blast.
@@ -239,6 +240,15 @@ async function handleBangCommand({ msg, client, deps }) {
         `*Users:* _${result.users}_\n` +
         `*Akun SSO:* _${result.accounts}_\n` +
         `_(unsubscribed, aktif 30 hari — notif WA dengan jitter ~${Math.round((result.users * 1.05) / 60)} menit)_`,
+    };
+  }
+  if (msg.body === "!relogin_failed") {
+    const count = await ssoResetFailedLogins();
+    return {
+      reply:
+        count === 0
+          ? "ℹ️ Tidak ada akun dengan status salah password."
+          : `🔁 *${count} akun* direset ke status 0.\n\nCron :15/:45 berikutnya akan mencoba login ulang.`,
     };
   }
   if (msg.body === "!dedupe") {

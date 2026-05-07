@@ -834,6 +834,29 @@ async function getAllLinkedSSOAccounts() {
   }
 }
 
+// Reset status_login 4 (Incorrect Password) back to 0 for all linked accounts
+// so the next cron run retries them. Returns count of rows updated.
+async function ssoResetFailedLogins() {
+  try {
+    const registereds = await RegisteredWhatsapp.findAll({ attributes: ["sso_ids"] });
+    const ids = [];
+    registereds.forEach((r) => {
+      if (r.sso_ids)
+        r.sso_ids.split(",").forEach((id) => ids.push(parseInt(id.trim(), 10)));
+    });
+    const uniqueIds = [...new Set(ids)];
+    if (!uniqueIds.length) return 0;
+    const [count] = await SSOAccounts.update(
+      { status_login: 0 },
+      { where: { id: { [Op.in]: uniqueIds }, status_login: 4 }, silent: true }
+    );
+    return count;
+  } catch (error) {
+    console.error("Error resetting failed logins:", error);
+    throw error;
+  }
+}
+
 async function getFalseSubmissionAccountsToday() {
   try {
     const registereds = await RegisteredWhatsapp.findAll({
@@ -1776,4 +1799,5 @@ module.exports = {
   dedupeSameEmailPerWa,
   registeredGetIndexOfSSOID,
   getAllLinkedSSOAccounts,
+  ssoResetFailedLogins,
 };

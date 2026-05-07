@@ -458,6 +458,7 @@ const adminHelp = () =>
   "- *_!gift N_* — tambah _N_ kupon ke akun SSO milik user subscribed (max 100)\n" +
   "- *_!gift_inactive N_* — tambah _N_ kupon ke akun SSO milik unsubscribed aktif 30 hari\n\n" +
   "*Maintenance:*\n" +
+  "- *_!relogin_failed_* — reset akun salah password → 0, cron retry berikutnya\n" +
   "- *_!migrate_lid_* — proactive merge semua @lid rows ke @c.us via WA Store\n" +
   "- *_!sweep_inactive_* — unsubscribe user dorman (>90 hari)\n" +
   "- *_!dedupe_* — merge duplikat akun (email sama di 1 WA)";
