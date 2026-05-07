@@ -32,18 +32,21 @@ const ufoodPanduan = () =>
 
 const commandsList = () =>
   "*Perintah UFood*\n\n" +
-  "_Ganti angka *1* sesuai nomor akun (`ufood akun` untuk cek)_\n\n" +
+  "_Ganti angka *1* sesuai nomor akun — cek lewat *_ufood akun_*_\n\n" +
   "*Mulai:*\n" +
-  "`ufood` • `ufood daftar {email} {password}`\n\n" +
+  "- *_ufood_*\n" +
+  "- *_ufood daftar {email} {password}_*\n\n" +
   "*Akun:*\n" +
-  "`ufood akun` • `ufood akun 1`\n" +
-  "`ufood akun 1 beli` — beli kuota (QRIS)\n" +
-  "`ufood akun 1 ganti {email} {password}` — ganti kredensial\n" +
-  "`ufood akun 1 lokasi` / `lokasi 1` — lihat/ubah lokasi\n" +
-  "`ufood akun 1 submit` / `submit enable` / `submit disable`\n" +
-  "`ufood akun 1 hapus`\n\n" +
+  "- *_ufood akun_* / *_ufood akun 1_*\n" +
+  "- *_ufood akun 1 beli_* — beli kuota (QRIS)\n" +
+  "- *_ufood akun 1 ganti {email} {password}_* — ganti kredensial\n" +
+  "- *_ufood akun 1 lokasi_* / *_lokasi 1_* — lihat/ubah lokasi\n" +
+  "- *_ufood akun 1 submit_* / *_submit enable_* / *_submit disable_*\n" +
+  "- *_ufood akun 1 hapus_*\n\n" +
   "*Lainnya:*\n" +
-  "`ufood status` • `ufood subscribe` / `unsubscribe` • `ping`";
+  "- *_ufood status_*\n" +
+  "- *_ufood subscribe_* / *_ufood unsubscribe_*\n" +
+  "- *_ping_*";
 
 const daftarFormat = () =>
   "Format: *_ufood daftar {email} {password}_*\n\n" +
