@@ -809,6 +809,31 @@ async function getCombinedSSOAccounts() {
   }
 }
 
+// All linked SSO accounts regardless of status — used for login summary stats.
+async function getAllLinkedSSOAccounts() {
+  try {
+    const registereds = await RegisteredWhatsapp.findAll({
+      attributes: ["sso_ids"],
+    });
+    const ssoIdsArray = [];
+    registereds.forEach((registered) => {
+      const ids = registered.sso_ids
+        ? registered.sso_ids.split(",").map((id) => parseInt(id.trim(), 10))
+        : [];
+      ssoIdsArray.push(...ids);
+    });
+    const uniqueSSOIds = [...new Set(ssoIdsArray)];
+    if (!uniqueSSOIds.length) return [];
+    return await SSOAccounts.findAll({
+      where: { id: { [Op.in]: uniqueSSOIds } },
+      attributes: ["id", "status_login"],
+    });
+  } catch (error) {
+    console.error("Error fetching all linked SSO accounts:", error);
+    throw error;
+  }
+}
+
 async function getFalseSubmissionAccountsToday() {
   try {
     const registereds = await RegisteredWhatsapp.findAll({
@@ -1750,4 +1775,5 @@ module.exports = {
   daftarOrUpdateAccount,
   dedupeSameEmailPerWa,
   registeredGetIndexOfSSOID,
+  getAllLinkedSSOAccounts,
 };

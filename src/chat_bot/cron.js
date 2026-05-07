@@ -10,6 +10,7 @@ const {
   couponsGetAllEntriesToday,
   couponsUpdateWASent,
   getCombinedSSOAccounts,
+  getAllLinkedSSOAccounts,
   getFalseSubmissionAccountsToday,
   ssoEditAccountReminded,
   waMsgExpireStaleBlocks,
@@ -125,13 +126,13 @@ async function doLoginAccounts(client, adminWa = null, forceReport = false) {
 
   if (adminWa && (forceReport || updatedIds.length > 0)) {
     try {
-      const after = await getCombinedSSOAccounts();
-      const total = after.length;
-      const loggedIn = after.filter((a) => a.dataValues.status_login === 1).length;
-      const wrongCreds = after.filter((a) => [4, 5].includes(a.dataValues.status_login)).length;
-      const notActive = after.filter((a) => [2, 6].includes(a.dataValues.status_login)).length;
-      const techFail = after.filter((a) => [7, 8].includes(a.dataValues.status_login)).length;
-      const notYet = after.filter((a) => a.dataValues.status_login === 0).length;
+      const all = await getAllLinkedSSOAccounts();
+      const total = all.length;
+      const loggedIn = all.filter((a) => a.dataValues.status_login === 1).length;
+      const wrongCreds = all.filter((a) => [4, 5].includes(a.dataValues.status_login)).length;
+      const notActive = all.filter((a) => [2, 6].includes(a.dataValues.status_login)).length;
+      const techFail = all.filter((a) => [7, 8].includes(a.dataValues.status_login)).length;
+      const notYet = all.filter((a) => a.dataValues.status_login === 0).length;
       await client.sendMessage(
         adminWa,
         views.adminLoginSummary({ total, loggedIn, wrongCreds, notActive, techFail, notYet })
