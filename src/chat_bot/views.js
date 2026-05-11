@@ -443,6 +443,7 @@ const adminHelp = () =>
   "- *_!stats_* — stats sistem (users, SSO, submit/lokasi, errors)\n" +
   "- *_!coupon_* — ringkasan run kupon hari ini\n" +
   "- *_!coupon YYYY-MM-DD_* — ringkasan run tanggal tertentu\n" +
+  "- *_!check_kupon_* — cek status ambil kupon hari ini (sudah/belum)\n" +
   "- *_!errors_* — 10 error terakhir (Node + Python)\n" +
   "- *_!errors N_* — N error terakhir (max 50)\n\n" +
   "*Reply ke pesan:*\n" +
@@ -566,6 +567,23 @@ const adminStats = (s) =>
   `*Errors 24 jam terakhir:* _${s.errorsLast24h}_ ` +
   `(cek: *_!errors_*)`;
 
+const adminCheckKupon = (r) => {
+  const date = format(new Date(), "dd/MM/yyyy HH:mm");
+  let body =
+    `*Status Ambil Kupon — ${date}*\n\n` +
+    `*Total kupon:* _${r.total}_\n` +
+    `*Sudah ambil:* _${r.sudah}_ ✅\n` +
+    `*Belum ambil:* _${r.belum}_ ⏳\n`;
+  if (r.errored > 0) body += `*Gagal cek:* _${r.errored}_ ⚠️\n`;
+  if (r.belum > 0 && r.belumList.length) {
+    body += "\n*Belum diambil:*\n";
+    body += r.belumList
+      .map((e) => `- _${e.email}_ (${locationName(e.location)})`)
+      .join("\n");
+  }
+  return body;
+};
+
 module.exports = {
   SYSTEM_VERSION,
   welcome,
@@ -632,4 +650,5 @@ module.exports = {
   adminNewRegistration,
   adminGantiCredential,
   adminLoginFailed,
+  adminCheckKupon,
 };

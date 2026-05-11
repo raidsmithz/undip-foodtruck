@@ -748,6 +748,71 @@ async function couponsGetAllEntriesToday() {
   }
 }
 
+// Scrape pickup status from validate-scan page. Returns:
+//   "sudah" | "belum" | "unknown" (page didn't have the expected markup)
+//   "error" (network/HTTP failure)
+async function couponsScrapePickupStatus(validation_url) {
+  try {
+    const res = await fetch(validation_url, {
+      headers: { "User-Agent": "Mozilla/5.0 ufood-bot" },
+    });
+    if (!res.ok) return "error";
+    const html = await res.text();
+    const m = html.match(/<th\s+class="(green|red)">\s*(Sudah|Belum)\s*<\/th>/i);
+    if (!m) return "unknown";
+    return m[2].toLowerCase();
+  } catch (_) {
+    return "error";
+  }
+}
+
+// Check pickup status for all today's successfully-taken coupons.
+// Returns { total, sudah, belum, errored, belumList: [{ email, location }] }.
+async function couponsCheckTodayPickupStatus({ concurrency = 5 } = {}) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const taken = await TakenCoupons.findAll({
+    where: { created_at: { [Op.gte]: today }, taken_success: true },
+    attributes: ["sso_id", "validation_url", "pick_location"],
+    raw: true,
+  });
+  const result = { total: taken.length, sudah: 0, belum: 0, errored: 0, belumList: [] };
+  if (!taken.length) return result;
+
+  // Resolve emails in one go
+  const ssoIds = [...new Set(taken.map((t) => t.sso_id))];
+  const accounts = await SSOAccounts.findAll({
+    where: { id: { [Op.in]: ssoIds } },
+    attributes: ["id", "email"],
+    raw: true,
+  });
+  const emailById = {};
+  accounts.forEach((a) => {
+    try { emailById[a.id] = decrypt(a.email); } catch (_) { emailById[a.id] = a.email; }
+  });
+
+  // Throttled concurrent fetches
+  let cursor = 0;
+  async function worker() {
+    while (cursor < taken.length) {
+      const i = cursor++;
+      const t = taken[i];
+      if (!t.validation_url) {
+        result.errored += 1;
+        continue;
+      }
+      const status = await couponsScrapePickupStatus(t.validation_url);
+      if (status === "sudah") result.sudah += 1;
+      else if (status === "belum") {
+        result.belum += 1;
+        result.belumList.push({ email: emailById[t.sso_id] || `#${t.sso_id}`, location: t.pick_location });
+      } else result.errored += 1;
+    }
+  }
+  await Promise.all(Array.from({ length: concurrency }, worker));
+  return result;
+}
+
 async function couponsCheckTakenToday(sso_id) {
   try {
     const today = new Date();
@@ -1800,4 +1865,5 @@ module.exports = {
   registeredGetIndexOfSSOID,
   getAllLinkedSSOAccounts,
   ssoResetFailedLogins,
+  couponsCheckTodayPickupStatus,
 };

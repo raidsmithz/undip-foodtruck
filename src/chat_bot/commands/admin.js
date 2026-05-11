@@ -20,6 +20,7 @@ const {
   ssoBulkGiftSubscribed,
   dedupeSameEmailPerWa,
   ssoResetFailedLogins,
+  couponsCheckTodayPickupStatus,
 } = require("../../models/functions");
 
 // Users inactive for this many days get auto-unsubscribed before any blast.
@@ -241,6 +242,12 @@ async function handleBangCommand({ msg, client, deps }) {
         `*Akun SSO:* _${result.accounts}_\n` +
         `_(unsubscribed, aktif 30 hari — notif WA dengan jitter ~${Math.round((result.users * 1.05) / 60)} menit)_`,
     };
+  }
+  if (msg.body === "!check_kupon") {
+    const r = await couponsCheckTodayPickupStatus();
+    if (r.total === 0)
+      return { reply: "ℹ️ Belum ada kupon berhasil diambil hari ini." };
+    return { reply: views.adminCheckKupon(r) };
   }
   if (msg.body === "!relogin_failed") {
     const count = await ssoResetFailedLogins();
