@@ -395,9 +395,14 @@ async function handleBangCommand({ msg, client, deps }) {
       }
       const incoming = fetched.filter((m) => !m.fromMe);
       const unread = incoming.slice(-chat.unreadCount);
-      console.log(`[!unread]   replaying ${unread.length} messages`);
+      // Skip the !unread message itself to prevent infinite recursion when
+      // admin's own chat is included in the sweep.
+      const replayable = unread.filter(
+        (m) => m.id._serialized !== msg.id._serialized && m.body !== "!unread"
+      );
+      console.log(`[!unread]   replaying ${replayable.length} messages`);
 
-      for (const m of unread) {
+      for (const m of replayable) {
         if (total > 0) await humanSleep();
         try {
           await deps.router.route(m, client, deps);
