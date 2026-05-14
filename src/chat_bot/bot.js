@@ -84,7 +84,10 @@ const deps = {
     console.log("QR RECEIVED", qr);
   });
   client.on("authenticated", () => console.log("AUTHENTICATED"));
-  client.on("disconnected", (reason) => console.log(`DISCONNECTED: ${reason}`));
+  client.on("disconnected", (reason) => {
+    console.error(`DISCONNECTED: ${reason} — exiting so PM2 restarts`);
+    process.exit(1);
+  });
   client.on("auth_failure", (m) => console.error("AUTHENTICATION FAILURE", m));
 
   client.on("ready", async () => {
@@ -101,6 +104,30 @@ const deps = {
         console.error("[bot] route() unhandled", err);
       }
     });
+
+    // Health watcher: poll getState() every 60s. If the puppeteer browser
+    // crashes silently (no 'disconnected' event), this catches it because
+    // getState throws on a dead page. Three consecutive failures → exit so
+    // PM2 restarts the whole stack including the browser.
+    let failStreak = 0;
+    setInterval(async () => {
+      try {
+        const state = await client.getState();
+        if (state === "CONNECTED") {
+          failStreak = 0;
+        } else {
+          failStreak += 1;
+          console.warn(`[health] state=${state} streak=${failStreak}`);
+        }
+      } catch (err) {
+        failStreak += 1;
+        console.warn(`[health] getState threw: ${err.message} streak=${failStreak}`);
+      }
+      if (failStreak >= 3) {
+        console.error("[health] 3 consecutive failures — exiting for PM2 restart");
+        process.exit(1);
+      }
+    }, 60_000);
 
     listenerInitialized = true;
   });
